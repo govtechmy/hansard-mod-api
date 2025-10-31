@@ -29,8 +29,6 @@ docker run --rm -p 3000:3000 \
   -e APP_ENV=development \
   -e PORT=3000 \
   -e MONGODB_URI="mongodb://localhost:27017/hansard" \
-  -e JWT_SECRET="dev_jwt_secret" \
-  -e REFRESH_TOKEN_SECRET="dev_refresh_secret" \
   hansard-mod-api
 ```
 
@@ -41,8 +39,6 @@ docker run --rm -p 3000:3000 \
   -e APP_ENV=production \
   -e PORT=3000 \
   -e MONGODB_URI="your_prod_mongodb_uri" \
-  -e JWT_SECRET="your_prod_jwt_secret" \
-  -e REFRESH_TOKEN_SECRET="your_prod_refresh_secret" \
   -e FRONTEND_ORIGIN="https://your-frontend.example.com" \
   hansard-mod-api
 ```

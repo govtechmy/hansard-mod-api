@@ -2,7 +2,7 @@ FROM oven/bun:1-alpine AS base
 
 WORKDIR /app
 
-# Install build tools for native deps (e.g., bcrypt on musl)
+# Install build tools for native deps
 RUN apk add --no-cache python3 make g++
 
 # Copy lockfile and package manifest first for better layer caching

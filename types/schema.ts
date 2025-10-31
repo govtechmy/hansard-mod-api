@@ -1,20 +1,5 @@
 import { z } from "zod";
 
-export const ROLES = ["admin", "editor", "viewer"] as const;
-export type Role = typeof ROLES[number];
-
-export interface UserEntity {
-  name: string;
-  idNumber: string;
-  role: Role;
-  email: string;
-  username: string;
-  password: string;
-}
-
- 
-
-
 // School types
 export interface SchoolAdminInfo {
   state?: string;
@@ -91,24 +76,6 @@ export interface SchoolEntity {
 }
 
 // Zod schemas for request validation
-
-export const loginBodySchema = z.object({
-  username: z.string().min(1),
-  password: z.string().min(1),
-});
-
-export type LoginBodyValidated = z.infer<typeof loginBodySchema>;
-
-// Headers and other bodies
-export const authHeaderSchema = z.object({
-  authorization: z.string().regex(/^Bearer\s+.+$/),
-});
-export type AuthHeader = z.infer<typeof authHeaderSchema>;
-
-export const refreshBodySchema = z.object({
-  refreshToken: z.string().min(1),
-});
-export type RefreshBodyValidated = z.infer<typeof refreshBodySchema>;
 
 // School bodies
 export const createSchoolBodySchema = z.object({

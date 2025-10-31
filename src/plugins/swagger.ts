@@ -10,15 +10,6 @@ export async function registerSwaggerPlugins(app: FastifyInstance): Promise<void
         description: "API documentation for hansard Mod service",
         version: "1.0.0",
       },
-      components: {
-        securitySchemes: {
-          bearerAuth: {
-            type: "http",
-            scheme: "bearer",
-            bearerFormat: "JWT",
-          },
-        },
-      },
     },
   });
 
