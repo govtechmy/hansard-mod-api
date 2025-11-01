@@ -1,8 +1,9 @@
 import type { FastifyInstance } from "fastify";
 
-import { registerParliamentaryCycleRoutes } from "@/routes/parliamentary-cycle.route";
-import { registerAuthorRoutes } from "@/routes/author.route";
-import { registerAuthorHistoryRoutes } from "@/routes/author-history.route";
+import { registerParliamentaryCycleRoutes } from "./parliamentary-cycle.route";
+import { registerAuthorRoutes } from "./author.route";
+import { registerAuthorHistoryRoutes } from "./author-history.route";
+import { registerCatalogueRoutes } from "./catalogue.route";
 
 export async function registerApiRoutes(app: FastifyInstance) {
   app.get("/health", { schema: { tags: ["System"], summary: "Healthcheck" } }, async () => {
@@ -17,6 +18,7 @@ export async function registerApiRoutes(app: FastifyInstance) {
   await registerParliamentaryCycleRoutes(app);
   await registerAuthorRoutes(app);
   await registerAuthorHistoryRoutes(app);
+  await registerCatalogueRoutes(app);
 }
 
 
