@@ -1,31 +1,19 @@
-import type { FastifyInstance } from "fastify";
-import type { ParliamentaryCycle } from "@/types/entities";
+import { DataTypes, type Sequelize } from "sequelize";
 
-export interface CreateParliamentaryCycleInput {
-  start_date: string;
-  end_date: string;
-  house: number;
-  term: number;
-  session: number;
-  meeting: number;
-}
-
-export async function insertParliamentaryCycle(app: FastifyInstance, input: CreateParliamentaryCycleInput): Promise<ParliamentaryCycle> {
-  const sql = `
-    INSERT INTO api_parliamentary_cycle (start_date, end_date, house, term, session, meeting)
-    VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING cycle_id, start_date, end_date, house, term, session, meeting
-  `;
-  const params = [
-    input.start_date,
-    input.end_date,
-    input.house,
-    input.term,
-    input.session,
-    input.meeting,
-  ];
-  const { rows } = await app.pg.query(sql, params);
-  return rows[0] as ParliamentaryCycle;
+export function initParliamentaryCycleModel(sequelize: Sequelize) {
+  return sequelize.define(
+    "ParliamentaryCycle",
+    {
+      cycle_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+      start_date: { type: DataTypes.DATEONLY, allowNull: false },
+      end_date: { type: DataTypes.DATEONLY, allowNull: false },
+      house: { type: DataTypes.INTEGER, allowNull: false },
+      term: { type: DataTypes.INTEGER, allowNull: false },
+      session: { type: DataTypes.INTEGER, allowNull: false },
+      meeting: { type: DataTypes.INTEGER, allowNull: false },
+    },
+    { tableName: "api_parliamentary_cycle", timestamps: false },
+  );
 }
 
 
