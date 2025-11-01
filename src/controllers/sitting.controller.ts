@@ -118,13 +118,11 @@ export async function upsertSitting(
     const { filename, house: houseType, date: dateStr } = request.body;
     const house = HOUSE_TO_CODE[houseType];
     if (house == null) {
-      return reply.code(400).send(createErrorResponse("House type not valid.", "ERR_400", 400));
+      return reply.code(400).send({ error: "House type not valid." });
     }
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) {
-      return reply
-        .code(400)
-        .send(createErrorResponse("Invalid date format. Date should be in YYYY-MM-DD format.", "ERR_400", 400));
+      return reply.code(400).send({ error: "Invalid date format. Date should be in YYYY-MM-DD format." });
     }
 
     let existing = await Sitting.findOne({ where: { filename } });
@@ -139,7 +137,7 @@ export async function upsertSitting(
       raw: true,
     });
     if (!cycle) {
-      return reply.code(400).send(createErrorResponse("Parliamentary cycle not found for date/house.", "ERR_400", 400));
+      return reply.code(400).send({ error: "Parliamentary cycle not found for date/house." });
     }
 
     // Prepare speech_data JSON for catalogue (nested levels)
