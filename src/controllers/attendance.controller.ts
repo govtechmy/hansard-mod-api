@@ -44,7 +44,7 @@ export async function getAttendance(
   try {
     const { sequelize } = request.server as any;
     const house = HOUSE_TO_CODE[(request.query.house ?? "dewan-rakyat") as House];
-    if (house == null) return reply.code(400).send(createErrorResponse("House type not valid.", "ERR_400", 400));
+    if (house == null) return reply.code(400).type("text/plain").send("House type not valid.");
 
     const term = request.query.term ? Number(request.query.term) : undefined;
     const session = request.query.session ? Number(request.query.session) : undefined;
