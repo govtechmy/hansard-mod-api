@@ -74,6 +74,7 @@ export async function getAttendance(
       JOIN api_sitting si ON si.sitting_id = att.sitting_id
       JOIN api_parliamentary_cycle pc ON pc.cycle_id = si.cycle_id
       JOIN api_author a ON a.new_author_id = ah.author_id
+      LEFT JOIN api_area ar ON ar.id = ah.area_id
     `;
     const whereSql = `WHERE ${whereParts.join(" AND ")}`;
 
@@ -88,11 +89,12 @@ export async function getAttendance(
         a.sex as sex,
         (extract(year from now())::int - a.birth_year) as age,
         ah.party as party,
+        ar.name as area,
         sum(CASE WHEN att.attended THEN 1 ELSE 0 END)::int as total_attended,
         (sum(CASE WHEN att.attended THEN 1 ELSE 0 END) * 100.0 / NULLIF(:total_sittings, 0))::float as attendance_pct
       ${baseJoin}
       ${whereSql}
-      GROUP BY a.name, a.ethnicity, a.sex, a.birth_year, ah.party
+      GROUP BY a.name, a.ethnicity, a.sex, a.birth_year, ah.party, ar.name
       ORDER BY attendance_pct DESC
     `;
     const rows: any[] = await sequelize.query(mainSql, {
@@ -101,7 +103,7 @@ export async function getAttendance(
     });
 
     if (!rows.length || total_sittings === 0) {
-      return reply.code(404).send(createErrorResponse("No attendance data found with the given query.", "ERR_404", 404));
+      return reply.code(404).type("text/plain").send("No attendance data found with the given query.");
     }
 
     const enriched = rows.map((r) => ({
@@ -110,7 +112,7 @@ export async function getAttendance(
       sex: r.sex,
       age: r.age != null ? Number(r.age) : null,
       party: r.party,
-      area: null as any, // area name not present in current join
+      area: r.area ?? null,
       total_attended: Number(r.total_attended),
       attendance_pct: Number(r.attendance_pct),
       total: total_sittings,
@@ -118,10 +120,13 @@ export async function getAttendance(
       age_group: "",
     }));
 
-    // Compute rank and age groups
+    // Compute tie-aware ranks (method="min") and age groups
     enriched.sort((a, b) => b.attendance_pct - a.attendance_pct);
-    enriched.forEach((r, idx) => {
-      r.rank = idx + 1;
+    const uniquePcts = Array.from(new Set(enriched.map((r) => r.attendance_pct))).sort((a, b) => b - a);
+    const rankMap = new Map<number, number>();
+    uniquePcts.forEach((pct, idx) => rankMap.set(pct, idx + 1));
+    enriched.forEach((r) => {
+      r.rank = rankMap.get(r.attendance_pct) ?? 0;
       r.age_group = ageToGroup(r.age);
     });
 
@@ -149,18 +154,13 @@ export async function getAttendance(
     const chart_age = generateBarmeterData(enriched.map((r) => ({ key: r.age_group, attendance_pct: r.attendance_pct })), "age_group");
     const chart_ethnicity = generateBarmeterData(enriched.map((r) => ({ key: r.ethnicity, attendance_pct: r.attendance_pct })), "ethnicity");
 
-    return reply.send(
-      createSuccessResponse(
-        {
-          charts: { sex: chart_sex, age: chart_age, ethnicity: chart_ethnicity },
-          tab_individual: enriched,
-          tab_party,
-        },
-        200,
-      ),
-    );
+    return reply.send({
+      charts: { sex: chart_sex, age: chart_age, ethnicity: chart_ethnicity },
+      tab_individual: enriched,
+      tab_party,
+    });
   } catch (err: any) {
-    return reply.code(400).send(createErrorResponse(err?.message ?? "Bad Request", "ERR_400", 400));
+    return reply.code(400).send({ error: err?.message ?? "Bad Request" });
   }
 }
 
