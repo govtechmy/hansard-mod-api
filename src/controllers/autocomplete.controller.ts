@@ -14,7 +14,7 @@ export async function getAutocomplete(
     const rawQuery = (request.query.q ?? "").toString().trim().toLowerCase();
     const maxSuggestions = Number(request.query.limit ?? 8);
     if (rawQuery.length < 2) {
-      return reply.send(createSuccessResponse({ suggestions: [], query: rawQuery }, 200));
+      return reply.send({ suggestions: [], query: rawQuery });
     }
 
     const house = HOUSE_TO_CODE[(request.query.house ?? "dewan-rakyat") as House] ?? 0;
@@ -74,9 +74,9 @@ export async function getAutocomplete(
 
     const uniqueSuggestions = Array.from(wordsSet).filter((s) => s !== rawQuery && s.length > 1);
     const result = { suggestions: uniqueSuggestions.slice(0, maxSuggestions), query: rawQuery };
-    return reply.send(createSuccessResponse(result, 200));
+    return reply.send(result);
   } catch (err: any) {
-    return reply.code(200).send(createSuccessResponse({ suggestions: [], query: (request.query.q ?? "").toString() }, 200));
+    return reply.code(200).send({ suggestions: [], query: (request.query.q ?? "").toString() });
   }
 }
 
