@@ -12,10 +12,7 @@ export const authorHistoryItemSchema = z.object({
   end_date: z.string().nullable(),
 });
 
-export const getAuthorHistoryResponseSchema = z.object({
-  status: z.enum(RESPONSE_STATUS).default(RESPONSE_STATUS.SUCCESS),
-  statusCode: z.number().default(200),
-  data: z.array(authorHistoryItemSchema),
-});
+// Raw payload for GET /author-history
+export const getAuthorHistoryResponseSchema = z.array(authorHistoryItemSchema);
 
 
