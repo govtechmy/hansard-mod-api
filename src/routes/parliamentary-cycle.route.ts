@@ -1,17 +1,9 @@
 import type { FastifyInstance } from "fastify";
-import { z } from "zod";
 import { createParliamentaryCycle } from "@/controllers/parliamentary-cycle.controller";
 import { withStandardErrors } from "@/utils/swagger.util";
-import { standardResponseSchema } from "@/schema/shared";
+import { standardErrorResponseSchema } from "@/schema/shared";
+import { createCycleBodySchema, createParliamentaryCycleResponseSchema } from "@/schema";
 
-const createCycleBodySchema = z.object({
-  start_date: z.string().min(1),
-  end_date: z.string().min(1),
-  house: z.number().int().min(0).max(2),
-  term: z.number().int(),
-  session: z.number().int(),
-  meeting: z.number().int(),
-});
 
 export async function registerParliamentaryCycleRoutes(app: FastifyInstance) {
   app.post(
@@ -21,11 +13,13 @@ export async function registerParliamentaryCycleRoutes(app: FastifyInstance) {
         tags: ["ParliamentaryCycle"],
         summary: "Create parliamentary cycle",
         body: createCycleBodySchema,
-        response: withStandardErrors({ 201: standardResponseSchema }),
+        response: withStandardErrors({
+          201: createParliamentaryCycleResponseSchema.describe("Created parliamentary cycle"),
+          500: standardErrorResponseSchema.describe("Internal server error"),
+        }),
       },
     },
     createParliamentaryCycle,
   );
 }
-
 
