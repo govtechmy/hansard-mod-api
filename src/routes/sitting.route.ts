@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify";
 import { getSitting, upsertSitting } from "@/controllers/sitting.controller";
-import { withStandardErrors } from "@/utils/swagger.util";
 import { getSittingQuerySchema, getSittingResponseSchema, upsertSittingBodySchema, upsertSittingResponseSchema } from "@/schema";
 
 export async function registerSittingRoutes(app: FastifyInstance) {
@@ -11,7 +10,7 @@ export async function registerSittingRoutes(app: FastifyInstance) {
         tags: ["Sitting"],
         summary: "Get speeches and metadata for a single sitting",
         querystring: getSittingQuerySchema,
-        response: withStandardErrors({ 200: getSittingResponseSchema }),
+        response: { 200: getSittingResponseSchema },
       },
     },
     getSitting,
@@ -24,7 +23,7 @@ export async function registerSittingRoutes(app: FastifyInstance) {
         tags: ["Sitting"],
         summary: "Create or update a sitting and speeches",
         body: upsertSittingBodySchema,
-        response: withStandardErrors({ 201: upsertSittingResponseSchema }),
+        response: { 201: upsertSittingResponseSchema },
       },
     },
     upsertSitting,

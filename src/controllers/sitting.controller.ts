@@ -67,18 +67,16 @@ export async function getSitting(
 ) {
   try {
     const { Sitting, ParliamentaryCycle } = request.server.models as any;
-    const houseType = request.query.house ?? ("dewan-rakyat" as House);
-    const house = HOUSE_TO_CODE[houseType];
-    if (house == null) {
-      return reply.code(400).send(createErrorResponse("House type not valid.", "ERR_400", 400));
+    const houseType = request.query.house as House | undefined;
+    const house = houseType != null ? HOUSE_TO_CODE[houseType] : null;
+    if (houseType == null || house == null) {
+      return reply.code(400).type("text/plain").send("House type not valid.");
     }
 
     const dateStr = request.query.date;
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) {
-      return reply
-        .code(400)
-        .send(createErrorResponse("Invalid date format. Date should be in YYYY-MM-DD format.", "ERR_400", 400));
+      return reply.code(400).type("text/plain").send("Invalid date format. Date should be in YYYY-MM-DD format.");
     }
 
     const sitting = await Sitting.findOne({
@@ -89,7 +87,7 @@ export async function getSitting(
     });
 
     if (!sitting) {
-      return reply.code(404).send(createErrorResponse("Sitting ID does not exist.", "ERR_404", 404));
+      return reply.code(404).type("text/plain").send("Sitting ID does not exist.");
     }
 
     const data = {
@@ -103,9 +101,9 @@ export async function getSitting(
       },
       speeches: JSON.parse(sitting.speech_data ?? "[]"),
     };
-    return reply.send(createSuccessResponse(data, 200));
+    return reply.send(data);
   } catch (err: any) {
-    return reply.code(400).send(createErrorResponse(err?.message ?? "Bad Request", "ERR_400", 400));
+    return reply.code(400).send({ error: err?.message ?? "Bad Request" });
   }
 }
 
@@ -229,27 +227,22 @@ export async function upsertSitting(
         if (created.length !== speechRows.length) {
           return reply
             .code(201)
-            .send(
-              createSuccessResponse(
-                { sitting: sitting?.toJSON?.() ?? sitting, warning: `Data integrity issue: ${created.length} speeches created but ${speechRows.length} expected` },
-                201,
-              ),
-            );
+            .send({ sitting: sitting?.toJSON?.() ?? sitting, warning: `Data integrity issue: ${created.length} speeches created but ${speechRows.length} expected` });
         }
-        return reply.code(201).send(createSuccessResponse(sitting?.toJSON?.() ?? sitting, 201));
+        return reply.code(201).send(sitting?.toJSON?.() ?? sitting);
       }
       // No raw speech list (invalid JSON or empty)
       return reply
         .code(201)
-        .send(createSuccessResponse({ sitting: sitting?.toJSON?.() ?? sitting, speech_errors: "Invalid JSON in speech_data" }, 201));
+        .send({ sitting: sitting?.toJSON?.() ?? sitting, speech_errors: "Invalid JSON in speech_data" });
     } catch (e: any) {
       // Speech creation failed; still return 201 with error details
       return reply
         .code(201)
-        .send(createSuccessResponse({ sitting: sitting?.toJSON?.() ?? sitting, speech_errors: e?.message ?? String(e) }, 201));
+        .send({ sitting: sitting?.toJSON?.() ?? sitting, speech_errors: e?.message ?? String(e) });
     }
   } catch (err: any) {
-    return reply.code(400).send(createErrorResponse(err?.message ?? "Bad Request", "ERR_400", 400));
+    return reply.code(400).send({ error: err?.message ?? "Bad Request" });
   }
 }
 
