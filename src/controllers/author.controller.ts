@@ -6,9 +6,9 @@ export async function getAuthors(request: FastifyRequest, reply: FastifyReply) {
     const Author = request.server.models.Author as any;
     const rows = await Author.findAll({ order: [["new_author_id", "ASC"]] });
     const json = rows.map((r: any) => (r?.toJSON?.() ?? r));
-    return reply.send(createSuccessResponse(json, 200));
+    return reply.send(json);
   } catch (err: any) {
-    return reply.code(400).send(createErrorResponse(err?.message ?? "Bad Request", "ERR_400", 400));
+    return reply.code(400).send({ error: err?.message ?? "Bad Request" });
   }
 }
 

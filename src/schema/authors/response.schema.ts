@@ -9,10 +9,7 @@ export const authorItemSchema = z.object({
   sex: z.enum(["m", "f"]),
 });
 
-export const getAuthorsResponseSchema = z.object({
-  status: z.enum(RESPONSE_STATUS).default(RESPONSE_STATUS.SUCCESS),
-  statusCode: z.number().default(200),
-  data: z.array(authorItemSchema),
-});
+// Raw payload for GET /author
+export const getAuthorsResponseSchema = z.array(authorItemSchema);
 
 
