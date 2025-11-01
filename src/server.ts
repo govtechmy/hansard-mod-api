@@ -11,7 +11,7 @@ import { registerApiRoutes } from "./routes/index.route";
 
 async function buildServer(): Promise<FastifyInstance> { //build the server
   const { isProduction } = config.env;
-  const app = Fastify({ logger: config.loggerOptions(isProduction) }).withTypeProvider<ZodTypeProvider>();
+  const app = Fastify({ ignoreTrailingSlash: true, logger: config.loggerOptions(isProduction) }).withTypeProvider<ZodTypeProvider>();
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
