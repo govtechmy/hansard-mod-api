@@ -15,26 +15,20 @@ export const searchResultItemSchema = z.object({
   }),
 });
 
+// Raw payload for GET /search
 export const searchResultsResponseSchema = z.object({
-  status: z.enum(RESPONSE_STATUS).default(RESPONSE_STATUS.SUCCESS),
-  statusCode: z.number().default(200),
-  data: z.object({
-    results: z.array(searchResultItemSchema),
-    count: z.number(),
-    next: z.number().nullable(),
-    previous: z.number().nullable(),
-  }),
+  results: z.array(searchResultItemSchema),
+  count: z.number(),
+  next: z.number().nullable(),
+  previous: z.number().nullable(),
 });
 
+// Raw payload for GET /search-plot
 export const searchPlotResponseSchema = z.object({
-  status: z.enum(RESPONSE_STATUS).default(RESPONSE_STATUS.SUCCESS),
-  statusCode: z.number().default(200),
-  data: z.object({
-    chart_data: z.object({ date: z.array(z.string()), freq: z.array(z.number()) }),
-    total_results: z.number(),
-    top_word_freq: z.record(z.string(), z.number()),
-    top_speakers: z.array(z.record(z.string(), z.number())),
-  }),
+  chart_data: z.object({ date: z.array(z.string()), freq: z.array(z.number()) }),
+  total_results: z.number(),
+  top_word_freq: z.record(z.string(), z.number()),
+  top_speakers: z.array(z.record(z.string(), z.number())),
 });
 
 

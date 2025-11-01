@@ -63,8 +63,7 @@ export async function getSearchResults(
     const q = (request.query.q ?? "").toString().trim().toLowerCase();
     const uid = request.query.uid ? Number(request.query.uid) : undefined;
     const pageSize = Number(request.query.page_size ?? DEFAULT_PAGE_SIZE);
-    const page = Math.max(1, Number(request.query.page ?? 1));
-    const offset = (page - 1) * pageSize;
+    const pageInput = Math.max(1, Number(request.query.page ?? 1));
 
     const whereParts: string[] = [
       "pc.house = :house",
@@ -134,6 +133,14 @@ export async function getSearchResults(
     const countSql = `SELECT count(*) as count ${baseFrom} ${whereSql}`;
     const [{ count }] = await sequelize.query(countSql, { replacements: repl, type: QueryTypes.SELECT });
 
+    const total = Number(count ?? 0);
+    if (total === 0) {
+      return reply.code(404).type("text/plain").send("No speeches found with the given query.");
+    }
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(pageInput, totalPages);
+    const offset = (page - 1) * pageSize;
+
     const selectSql = `
       SELECT s.index, a.name as speaker_name, a.new_author_id as author_id, s.speech, s.timestamp,
              si.date as sitting_date, pc.term, pc.session, pc.meeting
@@ -159,16 +166,12 @@ export async function getSearchResults(
         sitting: { date: r.sitting_date, term: r.term, session: r.session, meeting: r.meeting },
       }));
 
-    const total = Number(count ?? 0);
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const next = page < totalPages ? page + 1 : null;
     const previous = page > 1 ? page - 1 : null;
 
-    return reply.send(
-      createSuccessResponse({ results, count: total, next, previous }, 200),
-    );
+    return reply.send({ results, count: total, next, previous });
   } catch (err: any) {
-    return reply.code(400).send(createErrorResponse(err?.message ?? "Bad Request", "ERR_400", 400));
+    return reply.code(400).send({ error: err?.message ?? "Bad Request" });
   }
 }
 
@@ -272,7 +275,7 @@ export async function getSearchPlot(
     for (const r of freqRows) top_word_freq[r.word] = Number(r.c);
 
     if (!series.length) {
-      return reply.code(404).send(createErrorResponse("No speeches found with the given filters.", "ERR_404", 404));
+      return reply.code(404).type("text/plain").send("No speeches found with the given filters.");
     }
 
     const periodDays = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));
@@ -284,22 +287,33 @@ export async function getSearchPlot(
         const key = new Date(row.date).toISOString().slice(0, 7); // YYYY-MM
         monthMap.set(key, (monthMap.get(key) ?? 0) + Number(row.count));
       }
-      const keys = Array.from(monthMap.keys()).sort();
-      for (const k of keys) {
-        chart_data.date.push(k);
-        chart_data.freq.push(monthMap.get(k) ?? 0);
+      // Fill missing months between startDate and endDate (inclusive)
+      const start = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth(), 1);
+      const end = new Date(new Date(endDate).getFullYear(), new Date(endDate).getMonth(), 1);
+      for (let d = new Date(start); d <= end; d.setMonth(d.getMonth() + 1)) {
+        const key = new Date(d).toISOString().slice(0, 7);
+        chart_data.date.push(key);
+        chart_data.freq.push(monthMap.get(key) ?? 0);
       }
     } else {
+      const dayMap = new Map<string, number>();
       for (const row of series) {
-        chart_data.date.push(new Date(row.date).toISOString().slice(0, 10));
-        chart_data.freq.push(Number(row.count));
+        const key = new Date(row.date).toISOString().slice(0, 10);
+        dayMap.set(key, (dayMap.get(key) ?? 0) + Number(row.count));
+      }
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const key = new Date(d).toISOString().slice(0, 10);
+        chart_data.date.push(key);
+        chart_data.freq.push(dayMap.get(key) ?? 0);
       }
     }
 
     const total_results = chart_data.freq.reduce((a, b) => a + b, 0);
-    return reply.send(createSuccessResponse({ chart_data, total_results, top_word_freq, top_speakers }, 200));
+    return reply.send({ chart_data, total_results, top_word_freq, top_speakers });
   } catch (err: any) {
-    return reply.code(400).send(createErrorResponse(err?.message ?? "Bad Request", "ERR_400", 400));
+    return reply.code(400).send({ error: err?.message ?? "Bad Request" });
   }
 }
 

@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify";
 import { getSearchResults, getSearchPlot } from "@/controllers/search.controller";
-import { withStandardErrors } from "@/utils/swagger.util";
 import { searchQuerySchema, searchResultsResponseSchema, searchPlotQuerySchema, searchPlotResponseSchema } from "@/schema";
 
 export async function registerSearchRoutes(app: FastifyInstance) {
@@ -11,7 +10,7 @@ export async function registerSearchRoutes(app: FastifyInstance) {
         tags: ["Search"],
         summary: "Live search across speeches",
         querystring: searchQuerySchema,
-        response: withStandardErrors({ 200: searchResultsResponseSchema }),
+        response: { 200: searchResultsResponseSchema },
       },
     },
     getSearchResults,
@@ -24,7 +23,7 @@ export async function registerSearchRoutes(app: FastifyInstance) {
         tags: ["Search"],
         summary: "Search frequency time series and aggregates",
         querystring: searchPlotQuerySchema,
-        response: withStandardErrors({ 200: searchPlotResponseSchema }),
+        response: { 200: searchPlotResponseSchema },
       },
     },
     getSearchPlot,
