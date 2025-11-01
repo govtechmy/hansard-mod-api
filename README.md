@@ -1,4 +1,4 @@
-# sekolahku-mod-api
+# hansard-mod-api
 
 To install dependencies:
 
@@ -44,7 +44,7 @@ docker run --rm -p 3000:3000 \
   -e JWT_SECRET="your_prod_jwt_secret" \
   -e REFRESH_TOKEN_SECRET="your_prod_refresh_secret" \
   -e FRONTEND_ORIGIN="https://your-frontend.example.com" \
-  sekolahku-mod-api
+  hansard-mod-api
 ```
 
 Notes:
