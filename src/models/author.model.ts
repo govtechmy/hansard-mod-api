@@ -1,14 +1,17 @@
-import type { FastifyInstance } from "fastify";
-import type { Author } from "@/types/entities";
+import { DataTypes, type Sequelize } from "sequelize";
 
-export async function listAuthors(app: FastifyInstance): Promise<Author[]> {
-  const sql = `
-    SELECT new_author_id, name, birth_year, ethnicity, sex
-    FROM api_author
-    ORDER BY new_author_id ASC
-  `;
-  const { rows } = await app.pg.query(sql);
-  return rows as Author[];
+export function initAuthorModel(sequelize: Sequelize) {
+  return sequelize.define(
+    "Author",
+    {
+      new_author_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+      name: { type: DataTypes.TEXT, allowNull: false },
+      birth_year: { type: DataTypes.INTEGER, allowNull: true },
+      ethnicity: { type: DataTypes.TEXT, allowNull: false },
+      sex: { type: DataTypes.CHAR(1), allowNull: false },
+    },
+    { tableName: "api_author", timestamps: false },
+  );
 }
 
 
