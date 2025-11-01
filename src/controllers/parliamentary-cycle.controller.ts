@@ -18,9 +18,9 @@ export async function createParliamentaryCycle(
     const ParliamentaryCycle = request.server.models.ParliamentaryCycle as any;
     const instance = await ParliamentaryCycle.create(request.body);
     const created = instance?.toJSON?.() ?? instance;
-    return reply.code(201).send(createSuccessResponse(created, 201));
+    return reply.code(201).send(created);
   } catch (err: any) {
-    return reply.code(400).send(createErrorResponse(err?.message ?? "Bad Request", "ERR_400", 400));
+    return reply.code(400).send({ error: err?.message ?? "Bad Request" });
   }
 }
 

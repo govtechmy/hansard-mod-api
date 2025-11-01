@@ -11,10 +11,7 @@ export const parliamentaryCycleItemSchema = z.object({
   meeting: z.number(),
 });
 
-export const createParliamentaryCycleResponseSchema = z.object({
-  status: z.enum(RESPONSE_STATUS).default(RESPONSE_STATUS.SUCCESS),
-  statusCode: z.number().default(201),
-  data: parliamentaryCycleItemSchema,
-});
+// Raw payload for POST /parliamentary-cycle
+export const createParliamentaryCycleResponseSchema = parliamentaryCycleItemSchema;
 
 
