@@ -24,8 +24,6 @@ async function buildServer(): Promise<FastifyInstance> { //build the server
 
 async function start() { //start the server
   const portFromEnv = config.env.PORT;
-
-  await config.connectToDatabase();
   const app = await buildServer();
 
   try {
