@@ -5,7 +5,7 @@ This document defines the conventions for building and maintaining this API so n
 ### Tech Stack Overview
 - **Runtime/Framework**: Node.js with Fastify + TypeScript
 - **Validation/Typing**: `zod` + `fastify-type-provider-zod`
-- **Database/ODM**: MongoDB + Mongoose
+- **Database/ODM**: Postgress + pg
 - **Auth**: JWT (custom middleware), OAuth2 (Google, MyDigital)
 - **Cloud Integrations**: AWS S3 (uploads), AWS SNS (async workflows)
 - **API Docs**: Swagger/OpenAPI via Fastify plugins
