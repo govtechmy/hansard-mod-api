@@ -1,7 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { getAuthorHistory } from "@/controllers/author-history.controller";
 import { withStandardErrors } from "@/utils/swagger.util";
-import { standardResponseSchema } from "@/schema/shared";
+import { standardErrorResponseSchema } from "@/schema/shared";
+import { getAuthorHistoryResponseSchema } from "@/schema";
 
 export async function registerAuthorHistoryRoutes(app: FastifyInstance) {
   app.get(
@@ -10,7 +11,10 @@ export async function registerAuthorHistoryRoutes(app: FastifyInstance) {
       schema: {
         tags: ["AuthorHistory"],
         summary: "List author history records",
-        response: withStandardErrors({ 200: standardResponseSchema }),
+        response: withStandardErrors({
+          200: getAuthorHistoryResponseSchema.describe("List of author history records"),
+          500: standardErrorResponseSchema.describe("Internal server error"),
+        }),
       },
     },
     getAuthorHistory,
