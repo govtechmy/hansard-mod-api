@@ -17,7 +17,10 @@
   "scripts": {
     "dev": "bun --watch src/server.ts",
     "start": "bun src/server.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "migrate:up": "bun src/scripts/migrate.ts up",
+    "migrate:down": "bun src/scripts/migrate.ts down",
+    "migrate:status": "bun src/scripts/migrate.ts status"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",
@@ -31,6 +34,8 @@
     "fastify-type-provider-zod": "^5.0.3",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1",
+    "sequelize": "^6.37.7",
+    "umzug": "^3.8.2",
     "zod": "^4.0.17"
   }
 }
