@@ -12,12 +12,7 @@ import { registerSpeechRoutes } from "./speech.route";
 
 export async function registerApiRoutes(app: FastifyInstance) {
   app.get("/health", { schema: { tags: ["System"], summary: "Healthcheck" } }, async () => {
-    try {
-      await app.sequelize.authenticate();
-      return { status: "ok", db: "connected" };
-    } catch {
-      return { status: "ok", db: "disconnected" };
-    }
+    return { status: "healthy" };
   });
 
   await registerParliamentaryCycleRoutes(app);
