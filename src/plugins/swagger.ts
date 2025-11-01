@@ -6,9 +6,18 @@ export async function registerSwaggerPlugins(app: FastifyInstance): Promise<void
   await app.register(fastifySwagger, {
     openapi: {
       info: {
-        title: "hansard Mod API",
-        description: "API documentation for hansard Mod service",
+        title: "sekolahku Mod API",
+        description: "API documentation for sekolahku Mod service",
         version: "1.0.0",
+      },
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: "http",
+            scheme: "bearer",
+            bearerFormat: "JWT",
+          },
+        },
       },
     },
   });

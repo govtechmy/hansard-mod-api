@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "hansard-mod-api",
+      "name": "sekolahku-mod-api",
       "dependencies": {
         "@fastify/cors": "^11.1.0",
         "@fastify/helmet": "^13.0.1",

@@ -5,6 +5,8 @@ const EnvSchema = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).optional(),
   PORT: z.coerce.number().int().positive().default(3000),
   MONGODB_URI: z.string().min(1),
+  JWT_SECRET: z.string().min(1),
+  REFRESH_TOKEN_SECRET: z.string().min(1),
   FRONTEND_ORIGIN: z.string().url().optional(),
 });
 

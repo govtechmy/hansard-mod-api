@@ -1,4 +1,4 @@
-# hansard-mod-api
+# sekolahku-mod-api
 
 To install dependencies:
 
@@ -19,7 +19,7 @@ This project was created using `bun init` in bun v1.2.20. [Bun](https://bun.com)
 Build the image:
 
 ```bash
-docker build -t hansard-mod-api .
+docker build -t sekolahku-mod-api .
 ```
 
 Run (local/dev):
@@ -28,8 +28,10 @@ Run (local/dev):
 docker run --rm -p 3000:3000 \
   -e APP_ENV=development \
   -e PORT=3000 \
-  -e MONGODB_URI="mongodb://localhost:27017/hansard" \
-  hansard-mod-api
+  -e MONGODB_URI="mongodb://localhost:27017/sekolahku" \
+  -e JWT_SECRET="dev_jwt_secret" \
+  -e REFRESH_TOKEN_SECRET="dev_refresh_secret" \
+  sekolahku-mod-api
 ```
 
 Run (production):
@@ -39,8 +41,10 @@ docker run --rm -p 3000:3000 \
   -e APP_ENV=production \
   -e PORT=3000 \
   -e MONGODB_URI="your_prod_mongodb_uri" \
+  -e JWT_SECRET="your_prod_jwt_secret" \
+  -e REFRESH_TOKEN_SECRET="your_prod_refresh_secret" \
   -e FRONTEND_ORIGIN="https://your-frontend.example.com" \
-  hansard-mod-api
+  sekolahku-mod-api
 ```
 
 Notes:
