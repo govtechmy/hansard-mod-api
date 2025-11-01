@@ -3,12 +3,10 @@ import { createErrorResponse, createSuccessResponse } from "@/utils/response.uti
 
 export async function getAuthorHistory(request: FastifyRequest, reply: FastifyReply) {
   try {
-    const [rows] = await request.server.sequelize.query(
-      `SELECT record_id, author_id, party, area_id, exec_posts, service_posts, start_date, end_date
-       FROM api_author_history
-       ORDER BY record_id ASC`,
-    );
-    return reply.send(createSuccessResponse(rows, 200));
+    const AuthorHistory = request.server.models.AuthorHistory as any;
+    const rows = await AuthorHistory.findAll({ order: [["record_id", "ASC"]] });
+    const json = rows.map((r: any) => (r?.toJSON?.() ?? r));
+    return reply.send(createSuccessResponse(json, 200));
   } catch (err: any) {
     return reply.code(400).send(createErrorResponse(err?.message ?? "Bad Request", "ERR_400", 400));
   }
