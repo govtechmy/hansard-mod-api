@@ -18,7 +18,7 @@ async function buildServer(): Promise<FastifyInstance> { //build the server
 
   await plugins.registerAllPlugins(app, isProduction);
   registerErrorHandler(app);
-  await registerApiRoutes(app);
+  await app.register(registerApiRoutes, { prefix: "/api" });
   return app;
 }
 
