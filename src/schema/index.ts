@@ -3,3 +3,8 @@ export * from "./shared";
 export * from "./authors";
 export * from "./author-history";
 export * from "./catalogue";
+export * from "./sitting";
+export * from "./search";
+export * from "./autocomplete";
+export * from "./attendance";
+export * from "./speech";
