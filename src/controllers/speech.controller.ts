@@ -23,14 +23,14 @@ export async function bulkCreateSpeeches(
     const { Speech } = request.server.models as any;
     const isArray = Array.isArray(request.body);
     if (!isArray) {
-      return reply.code(400).send(createErrorResponse("Bulk creation is required.", "ERR_400", 400));
+      return reply.code(400).send({ error: "Bulk creation is required." });
     }
 
     const payload = request.body as SpeechItem[];
     const created = await Speech.bulkCreate(payload, { returning: true, validate: true });
-    return reply.code(201).send(createSuccessResponse(created.map((r: any) => (r?.toJSON?.() ?? r)), 201));
+    return reply.code(201).send(created.map((r: any) => (r?.toJSON?.() ?? r)));
   } catch (err: any) {
-    return reply.code(400).send(createErrorResponse(err?.message ?? "Bad Request", "ERR_400", 400));
+    return reply.code(400).send({ error: err?.message ?? "Bad Request" });
   }
 }
 
