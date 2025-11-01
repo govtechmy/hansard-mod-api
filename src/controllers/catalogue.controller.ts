@@ -112,9 +112,9 @@ export async function getCatalogue(
     }
 
     const data = { catalogue_list: cycleMap, total_count };
-    return reply.send(createSuccessResponse(data, 200));
+    return reply.send(data);
   } catch (err: any) {
-    return reply.code(400).send(createErrorResponse(err?.message ?? "Bad Request", "ERR_400", 400));
+    return reply.code(400).send({ error: err?.message ?? "Bad Request" });
   }
 }
 

@@ -33,10 +33,7 @@ export const catalogueDataSchema = z.object({
   total_count: z.number(),
 });
 
-export const getCatalogueResponseSchema = z.object({
-  status: z.enum(RESPONSE_STATUS).default(RESPONSE_STATUS.SUCCESS),
-  statusCode: z.number().default(200),
-  data: catalogueDataSchema,
-});
+// Raw payload for GET /catalogue
+export const getCatalogueResponseSchema = catalogueDataSchema;
 
 
