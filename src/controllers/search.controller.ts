@@ -110,7 +110,7 @@ export async function getSearchResults(
     let selectRank = "0 as rank";
     let orderBy = "si.date DESC";
     if (q) {
-      selectHeadline = `, ts_headline('english', s.speech, plainto_tsquery('english', :q), 'StartSel==, StopSel==, MinWords=${Math.max(
+      selectHeadline = `, ts_headline('english', s.speech, plainto_tsquery('english', :q), 'StartSel===, StopSel===, MinWords=${Math.max(
         10,
         windowSize - 10,
       )}, MaxWords=${windowSize}') as headline`;

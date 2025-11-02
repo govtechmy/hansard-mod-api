@@ -19,3 +19,5 @@ export const searchQuerySchema = z.object({
 export const searchPlotQuerySchema = searchQuerySchema;
 
 
+
+
