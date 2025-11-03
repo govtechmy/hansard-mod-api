@@ -2,8 +2,8 @@ import type { FastifyReply, FastifyRequest } from 'fastify'
 import { QueryTypes } from 'sequelize'
 
 import { type House, HOUSE_TO_CODE } from '@/types/enum'
-
-type AttendanceQuery = { house?: House; term?: string; session?: string; meeting?: string }
+import { ageToGroup, aggregateAverage, computeTieAwareRanks, aggregatePartyStats } from '@/utils'
+import type { AttendanceQuery, AttendanceResponse } from '@/types'
 
 const ageGroups: Record<number, string> = {
   30: '18-29',
@@ -14,28 +14,7 @@ const ageGroups: Record<number, string> = {
   999: '70+',
 }
 
-function ageToGroup(age: number | null): string {
-  if (age == null || Number.isNaN(age)) return '70+'
-  const keys = Object.keys(ageGroups)
-    .map(k => Number(k))
-    .sort((a, b) => a - b)
-  for (const k of keys) {
-    if (age < k) return ageGroups[k]!
-  }
-  return ageGroups[Math.max(...keys)]!
-}
-
-function generateBarmeterData(rows: Array<{ key: string; attendance_pct: number }>) {
-  const map = new Map<string, { sum: number; n: number }>()
-  for (const r of rows) {
-    const k = r.key ?? ''
-    const e = map.get(k) ?? { sum: 0, n: 0 }
-    e.sum += r.attendance_pct
-    e.n += 1
-    map.set(k, e)
-  }
-  return Array.from(map.entries()).map(([k, v]) => ({ x: k, y: v.n ? v.sum / v.n : 0 }))
-}
+// Local constants kept temporarily for backward compatibility; will be replaced by AGE_GROUPS from utils if needed.
 
 export async function getAttendance(request: FastifyRequest<{ Querystring: AttendanceQuery }>, reply: FastifyReply) {
   try {
@@ -117,45 +96,30 @@ export async function getAttendance(request: FastifyRequest<{ Querystring: Atten
       age_group: '',
     }))
 
-    // Compute tie-aware ranks (method="min") and age groups
+    // Compute tie-aware ranks and age groups via utils
     enriched.sort((a, b) => b.attendance_pct - a.attendance_pct)
-    const uniquePcts = Array.from(new Set(enriched.map(r => r.attendance_pct))).sort((a, b) => b - a)
-    const rankMap = new Map<number, number>()
-    uniquePcts.forEach((pct, idx) => rankMap.set(pct, idx + 1))
+    const rankMap = computeTieAwareRanks(enriched.map(r => r.attendance_pct))
     enriched.forEach(r => {
       r.rank = rankMap.get(r.attendance_pct) ?? 0
       r.age_group = ageToGroup(r.age)
     })
 
     // Party aggregates
-    const partyMap = new Map<string, { attendance_pct_sum: number; total_attended: number; total: number; total_seats: number }>()
-    for (const r of enriched) {
-      const key = r.party ?? ''
-      const e = partyMap.get(key) ?? { attendance_pct_sum: 0, total_attended: 0, total: 0, total_seats: 0 }
-      e.attendance_pct_sum += r.attendance_pct
-      e.total_attended += r.total_attended
-      e.total += r.total
-      e.total_seats += 1
-      partyMap.set(key, e)
-    }
-    const tab_party = Array.from(partyMap.entries()).map(([party, v]) => ({
-      party,
-      attendance_pct: v.total_seats ? v.attendance_pct_sum / v.total_seats : 0,
-      total_attended: v.total_attended,
-      total: v.total,
-      total_seats: v.total_seats,
-    }))
+    const tab_party = aggregatePartyStats(
+      enriched.map(r => ({ party: r.party, attendance_pct: r.attendance_pct, total_attended: r.total_attended, total: r.total })),
+    )
 
     // Charts
-    const chart_sex = generateBarmeterData(enriched.map(r => ({ key: r.sex, attendance_pct: r.attendance_pct })))
-    const chart_age = generateBarmeterData(enriched.map(r => ({ key: r.age_group, attendance_pct: r.attendance_pct })))
-    const chart_ethnicity = generateBarmeterData(enriched.map(r => ({ key: r.ethnicity, attendance_pct: r.attendance_pct })))
+  const chart_sex = aggregateAverage(enriched.map(r => ({ key: r.sex, value: r.attendance_pct })))
+  const chart_age = aggregateAverage(enriched.map(r => ({ key: r.age_group, value: r.attendance_pct })))
+  const chart_ethnicity = aggregateAverage(enriched.map(r => ({ key: r.ethnicity, value: r.attendance_pct })))
 
-    return reply.send({
+    const payload: AttendanceResponse = {
       charts: { sex: chart_sex, age: chart_age, ethnicity: chart_ethnicity },
       tab_individual: enriched,
       tab_party,
-    })
+    }
+    return reply.send(payload)
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Bad Request'
     return reply.code(400).send({ error: message })

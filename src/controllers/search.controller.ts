@@ -1,53 +1,17 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import { QueryTypes, Sequelize } from 'sequelize'
+import { QueryTypes } from 'sequelize'
 
 import { type House, HOUSE_TO_CODE } from '@/types/enum'
+import { paginate, translateAgeGroupToBirthYearBounds, buildHeadlineFragment, deriveDefaultStartDateDR, resampleSeries } from '@/utils'
+import type { SearchQuery, SearchResultsResponse, SearchPlotResponse } from '@/types'
 
-type SearchQuery = {
-  house?: House
-  start_date?: string
-  end_date?: string
-  window_size?: string | number
-  party?: string
-  age_group?: string // e.g. "18-29", "70"
-  sex?: string // 'm' | 'f'
-  ethnicity?: string
-  q?: string
-  uid?: string | number // author id
-  page?: string | number
-  page_size?: string | number
-}
+// Using centralized inferred SearchQuery type
 
 const DEFAULT_PAGE_SIZE = 9
 
-async function getDefaultStartDateForDR(server: any): Promise<string> {
-  const { ParliamentaryCycle } = server.models as any
-  // max term for dewan-rakyat (0)
-  const maxTermRow = await ParliamentaryCycle.findOne({
-    attributes: [[Sequelize.fn('max', Sequelize.col('term')), 'term']],
-    where: { house: 0 },
-    raw: true,
-  })
-  const maxTerm = maxTermRow?.term
-  if (!maxTerm && maxTerm !== 0) {
-    // fallback to earliest start_date
-    const minStart = await ParliamentaryCycle.findOne({
-      attributes: [[Sequelize.fn('min', Sequelize.col('start_date')), 'start_date']],
-      raw: true,
-    })
-    return minStart?.start_date ?? new Date().toISOString().slice(0, 10)
-  }
-  const termStart = await ParliamentaryCycle.findOne({
-    attributes: [[Sequelize.fn('min', Sequelize.col('start_date')), 'start_date']],
-    where: { house: 0, term: maxTerm },
-    raw: true,
-  })
-  return termStart?.start_date ?? new Date().toISOString().slice(0, 10)
-}
-
 function buildFilterClauses(server: any, query: SearchQuery) {
   const house = HOUSE_TO_CODE[(query.house ?? 'dewan-rakyat') as House] ?? 0
-  const startDatePromise = query.start_date ? Promise.resolve(query.start_date) : getDefaultStartDateForDR(server)
+  const startDatePromise = query.start_date ? Promise.resolve(query.start_date) : deriveDefaultStartDateDR(server.models)
   return { house, startDatePromise }
 }
 
@@ -81,18 +45,10 @@ export async function getSearchResults(request: FastifyRequest<{ Querystring: Se
     if (request.query.age_group) {
       const grp = request.query.age_group
       const currentYear = new Date().getFullYear()
-      if (grp === 'unknown') {
-        whereParts.push('a.birth_year IS NULL')
-      } else if (grp === '70') {
-        whereParts.push('a.birth_year <= :ageEnd')
-        repl.ageEnd = currentYear - 70
-      } else if (grp.includes('-')) {
-        const [loStr, hiStr] = grp.split('-')
-        const lo = Number(loStr!)
-        const hi = Number(hiStr!)
-        whereParts.push('a.birth_year BETWEEN :ageStart AND :ageEnd')
-        repl.ageStart = currentYear - hi
-        repl.ageEnd = currentYear - lo
+      const trans = translateAgeGroupToBirthYearBounds(grp, currentYear)
+      if (trans) {
+        whereParts.push(trans.clause)
+        Object.assign(repl, trans.params)
       }
     }
     if (uid) {
@@ -103,15 +59,13 @@ export async function getSearchResults(request: FastifyRequest<{ Querystring: Se
     let selectHeadline = ''
     let selectRank = '0 as rank'
     let orderBy = 'si.date DESC'
-    if (q) {
-      selectHeadline = `, ts_headline('english', s.speech, plainto_tsquery('english', :q), 'StartSel===, StopSel===, MinWords=${Math.max(
-        10,
-        windowSize - 10,
-      )}, MaxWords=${windowSize}') as headline`
-      selectRank = ", ts_rank(s.speech_vector, plainto_tsquery('english', :q)) as rank"
-      orderBy = 'rank DESC, si.date DESC'
+    const headlineFragment = q ? buildHeadlineFragment(q, windowSize) : null
+    if (headlineFragment) {
+      selectHeadline = headlineFragment.select
+      selectRank = headlineFragment.rankSelect
+      orderBy = headlineFragment.order
       repl.q = q
-      whereParts.push("s.speech_vector @@ plainto_tsquery('english', :q)")
+      whereParts.push(headlineFragment.condition)
     }
 
     const baseFrom = `
@@ -131,9 +85,7 @@ export async function getSearchResults(request: FastifyRequest<{ Querystring: Se
     if (total === 0) {
       return reply.code(404).type('text/plain').send('No speeches found with the given query.')
     }
-    const totalPages = Math.max(1, Math.ceil(total / pageSize))
-    const page = Math.min(pageInput, totalPages)
-    const offset = (page - 1) * pageSize
+  const { page, totalPages, offset, next, previous } = paginate(total, pageInput, pageSize)
 
     const selectSql = `
       SELECT s.index, a.name as speaker_name, a.new_author_id as author_id, s.speech, s.timestamp,
@@ -160,10 +112,8 @@ export async function getSearchResults(request: FastifyRequest<{ Querystring: Se
         sitting: { date: r.sitting_date, term: r.term, session: r.session, meeting: r.meeting },
       }))
 
-    const next = page < totalPages ? page + 1 : null
-    const previous = page > 1 ? page - 1 : null
-
-    return reply.send({ results, count: total, next, previous })
+  const response: SearchResultsResponse = { results, count: total, next, previous }
+  return reply.send(response)
   } catch (err: any) {
     return reply.code(400).send({ error: err?.message ?? 'Bad Request' })
   }
@@ -195,18 +145,10 @@ export async function getSearchPlot(request: FastifyRequest<{ Querystring: Searc
     if (request.query.age_group) {
       const grp = request.query.age_group
       const currentYear = new Date().getFullYear()
-      if (grp === 'unknown') {
-        whereParts.push('a.birth_year IS NULL')
-      } else if (grp === '70') {
-        whereParts.push('a.birth_year <= :ageEnd')
-        repl.ageEnd = currentYear - 70
-      } else if (grp.includes('-')) {
-        const [loStr, hiStr] = grp.split('-')
-        const lo = Number(loStr!)
-        const hi = Number(hiStr!)
-        whereParts.push('a.birth_year BETWEEN :ageStart AND :ageEnd')
-        repl.ageStart = currentYear - hi
-        repl.ageEnd = currentYear - lo
+      const trans = translateAgeGroupToBirthYearBounds(grp, currentYear)
+      if (trans) {
+        whereParts.push(trans.clause)
+        Object.assign(repl, trans.params)
       }
     }
     if (request.query.uid) {
@@ -265,40 +207,11 @@ export async function getSearchPlot(request: FastifyRequest<{ Querystring: Searc
       return reply.code(404).type('text/plain').send('No speeches found with the given filters.')
     }
 
-    const periodDays = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24))
-    const resamplingMonthly = periodDays >= 1095
-    const chart_data = { date: [] as string[], freq: [] as number[] }
-    if (resamplingMonthly) {
-      const monthMap = new Map<string, number>()
-      for (const row of series) {
-        const key = new Date(row.date).toISOString().slice(0, 7) // YYYY-MM
-        monthMap.set(key, (monthMap.get(key) ?? 0) + Number(row.count))
-      }
-      // Fill missing months between startDate and endDate (inclusive)
-      const start = new Date(new Date(startDate).getFullYear(), new Date(startDate).getMonth(), 1)
-      const end = new Date(new Date(endDate).getFullYear(), new Date(endDate).getMonth(), 1)
-      for (let d = new Date(start); d <= end; d.setMonth(d.getMonth() + 1)) {
-        const key = new Date(d).toISOString().slice(0, 7)
-        chart_data.date.push(key)
-        chart_data.freq.push(monthMap.get(key) ?? 0)
-      }
-    } else {
-      const dayMap = new Map<string, number>()
-      for (const row of series) {
-        const key = new Date(row.date).toISOString().slice(0, 10)
-        dayMap.set(key, (dayMap.get(key) ?? 0) + Number(row.count))
-      }
-      const start = new Date(startDate)
-      const end = new Date(endDate)
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const key = new Date(d).toISOString().slice(0, 10)
-        chart_data.date.push(key)
-        chart_data.freq.push(dayMap.get(key) ?? 0)
-      }
-    }
+    const chart_data = resampleSeries(series.map(r => ({ date: r.date, count: Number(r.count) })), startDate, endDate)
 
     const total_results = chart_data.freq.reduce((a, b) => a + b, 0)
-    return reply.send({ chart_data, total_results, top_word_freq, top_speakers })
+  const plotResponse: SearchPlotResponse = { chart_data, total_results, top_word_freq, top_speakers }
+  return reply.send(plotResponse)
   } catch (err: any) {
     return reply.code(400).send({ error: err?.message ?? 'Bad Request' })
   }

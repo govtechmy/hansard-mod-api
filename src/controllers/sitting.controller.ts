@@ -2,64 +2,12 @@ import type { FastifyReply, FastifyRequest } from 'fastify'
 import { Op } from 'sequelize'
 
 import { type House, HOUSE_TO_CODE } from '@/types/enum'
+import { buildNestedSpeeches, buildSpeechRows } from '@/utils'
+import type { GetSittingQuery, GetSittingResponse, UpsertSittingBody, UpsertSittingResponse } from '@/types'
 
-type GetSittingQuery = {
-  house: House
-  date: string // YYYY-MM-DD
-}
+// Using centralized inferred types
 
-type UpsertSittingBody = {
-  filename: string
-  house: House
-  date: string // YYYY-MM-DD
-  speech_data: string // JSON string of list[dict]
-}
-
-function addToNestedResult(levels: (string | null)[], data: any, result: any[]) {
-  if (!levels.filter(Boolean).length) {
-    result.push(data)
-    return
-  }
-
-  let currentLevel = result as any[]
-  for (const level of levels) {
-    if (!level) continue
-    let found: any = null
-    for (const item of currentLevel) {
-      if (level in item) {
-        found = item
-        break
-      }
-    }
-    if (!found) {
-      const newEntry: Record<string, any[]> = { [level]: [] }
-      currentLevel.push(newEntry)
-      currentLevel = newEntry[level]!
-    } else {
-      currentLevel = found[level]!
-    }
-  }
-
-  currentLevel.push(data)
-}
-
-function speechesToNestedJson(speechData: Array<Record<string, any>>): any[] {
-  const result: any[] = []
-  for (const row of speechData) {
-    const speechDict = {
-      speech: row['proc_speech'],
-      author: row['author'] ?? null,
-      author_id: row['speaker'] != null ? Number(row['speaker']) : null,
-      timestamp: row['timestamp'],
-      is_annotation: Boolean(row['is_annotation']),
-      index: Number(row['index']),
-    } as const
-
-    const levels = [row['level_1'], row['level_2'], row['level_3']] as (string | null)[]
-    addToNestedResult(levels, speechDict, result)
-  }
-  return result
-}
+// Nested speech helpers refactored into utils (buildNestedSpeeches)
 
 export async function getSitting(request: FastifyRequest<{ Querystring: GetSittingQuery }>, reply: FastifyReply) {
   try {
@@ -108,7 +56,7 @@ export async function getSitting(request: FastifyRequest<{ Querystring: GetSitti
       },
       speeches: JSON.parse(sitting.speech_data ?? '[]'),
     }
-    return reply.send(data)
+  return reply.send(data as GetSittingResponse)
   } catch (err: any) {
     return reply.code(400).send({ error: err?.message ?? 'Bad Request' })
   }
@@ -153,7 +101,7 @@ export async function upsertSitting(request: FastifyRequest<{ Body: UpsertSittin
     }
     let nestedSpeechJson: any[] = []
     if (Array.isArray(rawSpeechList) && rawSpeechList.length) {
-      nestedSpeechJson = speechesToNestedJson(rawSpeechList)
+      nestedSpeechJson = buildNestedSpeeches(rawSpeechList)
     }
 
     let sitting: any
@@ -205,25 +153,7 @@ export async function upsertSitting(request: FastifyRequest<{ Body: UpsertSittin
           if (!authorHistoryLookup.has(rec.author_id)) authorHistoryLookup.set(rec.author_id, rec.record_id)
         }
 
-        const speechRows = rawSpeechList
-          .filter((row: any) => !row?.is_annotation)
-          .map((row: any) => {
-            const authorId = row?.speaker != null ? Number(row.speaker) : null
-            const authorHistoryId = authorId != null ? (authorHistoryLookup.get(authorId) ?? null) : null
-            return {
-              sitting_id: sitting.sitting_id,
-              index: Number(row.index),
-              speaker_id: authorHistoryId,
-              timestamp: row.timestamp,
-              speech: row.speech,
-              speech_tokens: Array.isArray(row.speech_tokens) ? row.speech_tokens : [],
-              length: Number(row.length ?? 0),
-              level_1: row.level_1 ?? null,
-              level_2: row.level_2 ?? null,
-              level_3: row.level_3 ?? null,
-              is_annotation: Boolean(row.is_annotation),
-            }
-          })
+        const speechRows = buildSpeechRows(rawSpeechList, sitting.sitting_id, authorHistoryLookup)
 
         const created = await Speech.bulkCreate(speechRows, { returning: true, validate: true })
         if (created.length !== speechRows.length) {
@@ -232,13 +162,13 @@ export async function upsertSitting(request: FastifyRequest<{ Body: UpsertSittin
             warning: `Data integrity issue: ${created.length} speeches created but ${speechRows.length} expected`,
           })
         }
-        return reply.code(201).send(sitting?.toJSON?.() ?? sitting)
+  return reply.code(201).send((sitting?.toJSON?.() ?? sitting) as UpsertSittingResponse)
       }
       // No raw speech list (invalid JSON or empty)
-      return reply.code(201).send({ sitting: sitting?.toJSON?.() ?? sitting, speech_errors: 'Invalid JSON in speech_data' })
+  return reply.code(201).send({ sitting: sitting?.toJSON?.() ?? sitting, speech_errors: 'Invalid JSON in speech_data' } as UpsertSittingResponse)
     } catch (e: any) {
       // Speech creation failed; still return 201 with error details
-      return reply.code(201).send({ sitting: sitting?.toJSON?.() ?? sitting, speech_errors: e?.message ?? String(e) })
+  return reply.code(201).send({ sitting: sitting?.toJSON?.() ?? sitting, speech_errors: e?.message ?? String(e) } as UpsertSittingResponse)
     }
   } catch (err: any) {
     return reply.code(400).send({ error: err?.message ?? 'Bad Request' })

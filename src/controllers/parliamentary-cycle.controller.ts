@@ -1,13 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
-
-type CreateCycleBody = {
-  start_date: string
-  end_date: string
-  house: number
-  term: number
-  session: number
-  meeting: number
-}
+import type { CreateCycleBody } from '@/types'
 
 export async function createParliamentaryCycle(request: FastifyRequest<{ Body: CreateCycleBody }>, reply: FastifyReply) {
   try {
