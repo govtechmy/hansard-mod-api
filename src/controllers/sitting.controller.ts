@@ -1,9 +1,9 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { Op } from 'sequelize'
 
+import type { GetSittingQuery, GetSittingResponse, UpsertSittingBody, UpsertSittingResponse } from '@/types'
 import { type House, HOUSE_TO_CODE } from '@/types/enum'
 import { buildNestedSpeeches, buildSpeechRows } from '@/utils'
-import type { GetSittingQuery, GetSittingResponse, UpsertSittingBody, UpsertSittingResponse } from '@/types'
 
 // Using centralized inferred types
 
@@ -56,7 +56,7 @@ export async function getSitting(request: FastifyRequest<{ Querystring: GetSitti
       },
       speeches: JSON.parse(sitting.speech_data ?? '[]'),
     }
-  return reply.send(data as GetSittingResponse)
+    return reply.send(data as GetSittingResponse)
   } catch (err: any) {
     return reply.code(400).send({ error: err?.message ?? 'Bad Request' })
   }
@@ -162,13 +162,17 @@ export async function upsertSitting(request: FastifyRequest<{ Body: UpsertSittin
             warning: `Data integrity issue: ${created.length} speeches created but ${speechRows.length} expected`,
           })
         }
-  return reply.code(201).send((sitting?.toJSON?.() ?? sitting) as UpsertSittingResponse)
+        return reply.code(201).send((sitting?.toJSON?.() ?? sitting) as UpsertSittingResponse)
       }
       // No raw speech list (invalid JSON or empty)
-  return reply.code(201).send({ sitting: sitting?.toJSON?.() ?? sitting, speech_errors: 'Invalid JSON in speech_data' } as UpsertSittingResponse)
+      return reply
+        .code(201)
+        .send({ sitting: sitting?.toJSON?.() ?? sitting, speech_errors: 'Invalid JSON in speech_data' } as UpsertSittingResponse)
     } catch (e: any) {
       // Speech creation failed; still return 201 with error details
-  return reply.code(201).send({ sitting: sitting?.toJSON?.() ?? sitting, speech_errors: e?.message ?? String(e) } as UpsertSittingResponse)
+      return reply
+        .code(201)
+        .send({ sitting: sitting?.toJSON?.() ?? sitting, speech_errors: e?.message ?? String(e) } as UpsertSittingResponse)
     }
   } catch (err: any) {
     return reply.code(400).send({ error: err?.message ?? 'Bad Request' })

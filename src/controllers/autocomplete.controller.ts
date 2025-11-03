@@ -1,9 +1,9 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { QueryTypes } from 'sequelize'
 
-import { type House, HOUSE_TO_CODE } from '@/types/enum'
-import { normalizeQ, buildPrefixTsQuery, extractSuggestions } from '@/utils'
 import type { AutocompleteQuery, AutocompleteResponse } from '@/types'
+import { type House, HOUSE_TO_CODE } from '@/types/enum'
+import { buildPrefixTsQuery, extractSuggestions, normalizeQ } from '@/utils'
 
 export async function getAutocomplete(request: FastifyRequest<{ Querystring: AutocompleteQuery }>, reply: FastifyReply) {
   try {
@@ -51,8 +51,8 @@ export async function getAutocomplete(request: FastifyRequest<{ Querystring: Aut
 
     const speechStrings = speeches.map(r => r.speech ?? '')
     const suggestions = extractSuggestions(speechStrings, rawQuery, maxSuggestions)
-  const res: AutocompleteResponse = { suggestions, query: rawQuery }
-  return reply.send(res)
+    const res: AutocompleteResponse = { suggestions, query: rawQuery }
+    return reply.send(res)
   } catch {
     return reply.code(200).send({ suggestions: [], query: normalizeQ(request.query.q) } as AutocompleteResponse)
   }

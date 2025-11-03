@@ -1,9 +1,9 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { col, fn } from 'sequelize'
 
-import { type House, HOUSE_CODE, HOUSE_TO_CODE } from '@/types/enum'
-import { buildCycleMap, attachSittings } from '@/utils'
 import type { CatalogueQuery, CatalogueResponse } from '@/types'
+import { type House, HOUSE_CODE, HOUSE_TO_CODE } from '@/types/enum'
+import { attachSittings, buildCycleMap } from '@/utils'
 
 export async function getCatalogue(request: FastifyRequest<{ Querystring: CatalogueQuery }>, reply: FastifyReply) {
   try {
@@ -26,8 +26,8 @@ export async function getCatalogue(request: FastifyRequest<{ Querystring: Catalo
     await attachSittings(cycleMap, request.server.models, sittingWhere, Boolean(isDropdown))
     const total_count = await Sitting.count({ include: [{ model: ParliamentaryCycle, as: 'cycle', required: true }], where: sittingWhere })
 
-  const data: CatalogueResponse = { catalogue_list: cycleMap as any, total_count }
-  return reply.send(data)
+    const data: CatalogueResponse = { catalogue_list: cycleMap as any, total_count }
+    return reply.send(data)
   } catch (err: any) {
     return reply.code(400).send({ error: err?.message ?? 'Bad Request' })
   }

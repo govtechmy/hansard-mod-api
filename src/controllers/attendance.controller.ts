@@ -1,9 +1,9 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { QueryTypes } from 'sequelize'
 
-import { type House, HOUSE_TO_CODE } from '@/types/enum'
-import { ageToGroup, aggregateAverage, computeTieAwareRanks, aggregatePartyStats } from '@/utils'
 import type { AttendanceQuery, AttendanceResponse } from '@/types'
+import { type House, HOUSE_TO_CODE } from '@/types/enum'
+import { ageToGroup, aggregateAverage, aggregatePartyStats, computeTieAwareRanks } from '@/utils'
 
 const ageGroups: Record<number, string> = {
   30: '18-29',
@@ -110,9 +110,9 @@ export async function getAttendance(request: FastifyRequest<{ Querystring: Atten
     )
 
     // Charts
-  const chart_sex = aggregateAverage(enriched.map(r => ({ key: r.sex, value: r.attendance_pct })))
-  const chart_age = aggregateAverage(enriched.map(r => ({ key: r.age_group, value: r.attendance_pct })))
-  const chart_ethnicity = aggregateAverage(enriched.map(r => ({ key: r.ethnicity, value: r.attendance_pct })))
+    const chart_sex = aggregateAverage(enriched.map(r => ({ key: r.sex, value: r.attendance_pct })))
+    const chart_age = aggregateAverage(enriched.map(r => ({ key: r.age_group, value: r.attendance_pct })))
+    const chart_ethnicity = aggregateAverage(enriched.map(r => ({ key: r.ethnicity, value: r.attendance_pct })))
 
     const payload: AttendanceResponse = {
       charts: { sex: chart_sex, age: chart_age, ethnicity: chart_ethnicity },

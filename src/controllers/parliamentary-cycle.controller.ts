@@ -1,4 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
+
 import type { CreateCycleBody } from '@/types'
 
 export async function createParliamentaryCycle(request: FastifyRequest<{ Body: CreateCycleBody }>, reply: FastifyReply) {
