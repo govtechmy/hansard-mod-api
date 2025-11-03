@@ -9,7 +9,16 @@ const EnvSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.string().min(1),
-  FRONTEND_ORIGIN: z.string().min(1).optional(),
+  MULTIPLE_ORIGINS: z
+    .string()
+    .optional()
+    .transform(val => {
+      if (!val) return [] as string[]
+      return val
+        .split(',')
+        .map(t => t.trim())
+        .filter(t => t.length > 0)
+    })
 })
 
 function mapSecrets(secrets: Record<string, unknown>) {
@@ -18,7 +27,7 @@ function mapSecrets(secrets: Record<string, unknown>) {
     LOG_LEVEL: secrets.LOG_LEVEL,
     PORT: secrets.PORT,
     DATABASE_URL: secrets.DATABASE_URL,
-    FRONTEND_ORIGIN: secrets.FRONTEND_ORIGIN,
+    MULTIPLE_ORIGINS: secrets.MULTIPLE_ORIGINS,
   }
 }
 
@@ -44,6 +53,10 @@ async function resolveEnv() {
   }
 
   const isProduction = parsed.APP_ENV === 'production'
+  if (isProduction && (!Array.isArray(parsed.MULTIPLE_ORIGINS) || parsed.MULTIPLE_ORIGINS.length === 0)) {
+    throw new Error('MULTIPLE_ORIGINS is required in production environment')
+  }
+
   const logLevel = parsed.LOG_LEVEL ?? (isProduction ? 'info' : 'debug')
 
   return {
@@ -51,7 +64,7 @@ async function resolveEnv() {
     LOG_LEVEL: parsed.LOG_LEVEL,
     PORT: parsed.PORT,
     DATABASE_URL: parsed.DATABASE_URL,
-    FRONTEND_ORIGIN: parsed.FRONTEND_ORIGIN,
+    MULTIPLE_ORIGINS: parsed.MULTIPLE_ORIGINS,
     isProduction,
     logLevel,
   }
