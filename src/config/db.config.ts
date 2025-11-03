@@ -11,6 +11,12 @@ export function getSequelizeClient(): Sequelize {
     sequelize = new Sequelize(env.DATABASE_URL, {
       dialect: 'postgres',
       logging: false,
+      dialectOptions: {
+        ssl: {
+          rejectUnauthorized: false,
+          require: true,
+        },
+      },
     })
   }
 
