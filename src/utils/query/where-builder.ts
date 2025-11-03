@@ -10,7 +10,7 @@ export class WhereBuilder {
 
   toWhereSql(): string {
     if (!this.clauses.length) return ''
-    return 'WHERE ' + this.clauses.join(' AND ')
+    return `WHERE ${this.clauses.join(' AND ')}`
   }
 
   params(): Record<string, any> {

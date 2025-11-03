@@ -1,4 +1,4 @@
-import { fn, col } from 'sequelize'
+import { col, fn } from 'sequelize'
 
 export interface SittingSummary {
   sitting_id: number

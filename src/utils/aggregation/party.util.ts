@@ -13,7 +13,9 @@ interface PartyAccumulator {
   total_seats: number
 }
 
-export function aggregatePartyStats(rows: Array<{ party: string; attendance_pct: number; total_attended: number; total: number }>): PartyAggregate[] {
+export function aggregatePartyStats(
+  rows: Array<{ party: string; attendance_pct: number; total_attended: number; total: number }>,
+): PartyAggregate[] {
   const partyMap = new Map<string, PartyAccumulator>()
   for (const r of rows) {
     const key = r.party ?? ''

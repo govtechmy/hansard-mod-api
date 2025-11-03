@@ -28,7 +28,11 @@ export function isMonthlyResample(start: string, end: string): boolean {
   return periodDays >= 1095
 }
 
-export function resampleSeries(series: Array<{ date: Date | string; count: number }>, start: string, end: string): { date: string[]; freq: number[] } {
+export function resampleSeries(
+  series: Array<{ date: Date | string; count: number }>,
+  start: string,
+  end: string,
+): { date: string[]; freq: number[] } {
   const monthly = isMonthlyResample(start, end)
   const chart_data = { date: [] as string[], freq: [] as number[] }
   if (monthly) {

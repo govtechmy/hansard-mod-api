@@ -1,4 +1,4 @@
-import { HOUSE_TO_CODE, type House } from '@/types/enum'
+import { type House, HOUSE_TO_CODE } from '@/types/enum'
 
 export function parseNumber(value: unknown, fallback?: number): number {
   if (value == null) return fallback as number

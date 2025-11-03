@@ -25,5 +25,7 @@ export function extractSuggestions(speeches: string[], query: string, max: numbe
       }
     }
   }
-  return Array.from(wordsSet).filter(s => s !== query && s.length > 1).slice(0, max)
+  return Array.from(wordsSet)
+    .filter(s => s !== query && s.length > 1)
+    .slice(0, max)
 }

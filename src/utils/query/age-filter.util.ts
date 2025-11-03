@@ -1,4 +1,7 @@
-export function translateAgeGroupToBirthYearBounds(grp: string, currentYear: number): { clause: string; params: Record<string, number> } | null {
+export function translateAgeGroupToBirthYearBounds(
+  grp: string,
+  currentYear: number,
+): { clause: string; params: Record<string, number> } | null {
   if (!grp) return null
   if (grp === 'unknown') return { clause: 'a.birth_year IS NULL', params: {} }
   if (grp === '70') return { clause: 'a.birth_year <= :ageEnd', params: { ageEnd: currentYear - 70 } }
