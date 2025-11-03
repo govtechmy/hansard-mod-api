@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+
 import { disconnectFromDatabase, getSequelizeClient } from '@/config/db.config'
 import { initAreaModel } from '@/models/area.model'
 import { initAttendanceModel } from '@/models/attendance.model'

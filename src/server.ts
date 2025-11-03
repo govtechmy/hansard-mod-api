@@ -11,7 +11,8 @@ import { registerApiRoutes } from './routes/index.route'
 async function buildServer(env: config.Env): Promise<FastifyInstance> {
   //build the server
   const { isProduction, LOG_LEVEL } = config.env
-  const app = Fastify({ ignoreTrailingSlash: true, 
+  const app = Fastify({
+    ignoreTrailingSlash: true,
     logger: {
       level: LOG_LEVEL ?? 'info',
       stream: {
@@ -41,7 +42,6 @@ async function buildServer(env: config.Env): Promise<FastifyInstance> {
         },
       },
     },
-
   }).withTypeProvider<ZodTypeProvider>()
 
   app.setValidatorCompiler(validatorCompiler)
@@ -96,7 +96,6 @@ async function start() {
   try {
     await app.listen({ port: portFromEnv, host: '0.0.0.0' })
     app.log.info(`Server listening on port ${portFromEnv}`)
-
   } catch (err) {
     app.log.error(err)
     process.exit(1)
