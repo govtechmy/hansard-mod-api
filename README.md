@@ -1,52 +1,127 @@
-# hansard-mod-api
+# Hansard Mod API
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Fastify](https://img.shields.io/badge/Fastify-000000?style=flat&logo=fastify&logoColor=white)](https://fastify.dev/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Bun](https://img.shields.io/badge/Bun-000000?style=flat&logo=bun&logoColor=white)](https://bun.sh/)
 
-To install dependencies:
+High-performance REST API for the Malaysian Hansard modernisation effort. Built with TypeScript, Fastify, Bun, and PostgreSQL, the service powers domain endpoints for parliamentary cycles, sittings, speeches, authorship history, search, and attendance while enforcing consistent validation and secure integrations.
 
-```bash
-bun install
+## 🚀 Features
+
+- **Fastify + Bun runtime** delivering low-latency, high-throughput HTTP services
+- **Type-safe contracts** using `fastify-type-provider-zod` across routes and schemas
+- **PostgreSQL via Sequelize** with optimized read-heavy access patterns
+- **Hansard domain coverage**: parliamentary cycles, sittings, speeches, catalogue, authors, attendance, and search
+- **Structured logging** with Pino and request correlation hooks
+- **Environment parity** through AWS Secrets Manager support for runtime configuration
+- **OpenAPI docs** served through Swagger UI for straightforward API exploration
+- **Security middleware** (Helmet, CORS) with production-safe defaults
+
+## 📊 Logging
+
+Logging is powered by [Pino](https://getpino.io/) and extended with a request logging hook.
+
+- **Correlation ready**: Fastify request IDs are propagated to every log entry
+- **Structured events**: Method, URL, params, and sanitized bodies recorded as JSON
+- **Dynamic formatting**: Pretty logs during development, JSON output in production
+- **Custom transport**: Pretty printing handled via `pino-pretty` when `APP_ENV` is non-production
+- **AWS friendly**: Logs are emitted to stdout, making them compatible with CloudWatch ingestion
+
+Recommended practices:
+
+- Use `request.log` inside controllers/services to include contextual identifiers (e.g., `sittingId`, `cycleId`)
+- Prefer semantic levels: `info` for success paths, `warn` for unexpected-but-handled states, `error` for failures
+- Surface caught exceptions via `request.log.error({ err })` to retain stack traces
+
+## 📋 Prerequisites
+
+- [Bun](https://bun.sh/) v1.2.20 or newer
+- [Node.js](https://nodejs.org/) v18+ (optional, for tooling compatibility)
+- [PostgreSQL](https://www.postgresql.org/) 13+ running locally or remotely
+- AWS credentials (optional) when resolving environment configuration from Secrets Manager
+
+## 🛠️ Installation
+
+1. **Clone the repository**
+	```bash
+	git clone https://github.com/govtechmy/hansard-mod-api.git
+	cd hansard-mod-api
+	```
+
+2. **Install dependencies**
+	```bash
+	bun install
+	```
+
+3. **Set up environment variables**
+	```bash
+	cp .env.example .env
+	# Update .env with your local values
+	```
+
+## ⚙️ Configuration
+
+Environment configuration is validated at boot using Zod. Populate `.env` (or the referenced AWS secret) with the variables below:
+
+```env
+# Application
+APP_ENV=development # local | development | test | production
+LOG_LEVEL=debug # fatal | error | warn | info | debug | trace | silent
+PORT=3000
+
+# Database
+DATABASE_URL=postgres://user:password@localhost:5432/hansard
+
+# Frontend
+FRONTEND_ORIGIN=http://localhost:5173 # Required when APP_ENV=production
+
+# Optional AWS Secrets Manager
+AWS_SECRET_NAME=hansard-mod-api/config
 ```
 
-To run:
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `APP_ENV` | No | `local` | Sets runtime mode and influences logging/helmet behaviour |
+| `LOG_LEVEL` | No | `debug` (non-prod) / `info` (prod) | Overrides logger verbosity |
+| `PORT` | No | `3000` | Fastify listening port |
+| `DATABASE_URL` | Yes | – | PostgreSQL connection string used by Sequelize |
+| `FRONTEND_ORIGIN` | Yes (prod) | – | Allowed CORS origin in production |
+| `AWS_SECRET_NAME` | No | – | AWS Secrets Manager secret resolved at startup |
+
+When `AWS_SECRET_NAME` is supplied, the service tries to hydrate configuration from Secrets Manager first and falls back to process environment variables on failure.
+
+## 🚀 Usage
+
+### Development
 
 ```bash
+# Start Fastify with hot reload
 bun run dev
 ```
 
-This project was created using `bun init` in bun v1.2.20. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
-
-## Docker
-
-Build the image:
+### Database migrations
 
 ```bash
-docker build -t sekolahku-mod-api .
+# Apply pending migrations
+bun run migrate:up
+
+# Roll back last migration
+bun run migrate:down
+
+# Inspect migration status
+bun run migrate:status
 ```
 
-Run (local/dev):
+### Production
 
 ```bash
-docker run --rm -p 3000:3000 \
-  -e APP_ENV=development \
-  -e PORT=3000 \
-  -e MONGODB_URI="mongodb://localhost:27017/sekolahku" \
-  -e JWT_SECRET="dev_jwt_secret" \
-  -e REFRESH_TOKEN_SECRET="dev_refresh_secret" \
-  sekolahku-mod-api
+# Boot the server (expects env vars to be set)
+bun run start
 ```
 
-Run (production):
+### API documentation
 
-```bash
-docker run --rm -p 3000:3000 \
-  -e APP_ENV=production \
-  -e PORT=3000 \
-  -e MONGODB_URI="your_prod_mongodb_uri" \
-  -e JWT_SECRET="your_prod_jwt_secret" \
-  -e REFRESH_TOKEN_SECRET="your_prod_refresh_secret" \
-  -e FRONTEND_ORIGIN="https://your-frontend.example.com" \
-  hansard-mod-api
-```
+- **Swagger UI**: `http://localhost:3000/docs`
+- **OpenAPI JSON**: `http://localhost:3000/docs/json`
 
-Notes:
-- The server listens on `0.0.0.0` and uses `PORT` (default `3000`).
-- `FRONTEND_ORIGIN` is required when `APP_ENV=production`.
+<SECTION-ROUTES>
