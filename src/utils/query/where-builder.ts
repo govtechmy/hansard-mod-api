@@ -1,8 +1,10 @@
+import type { SqlBindings } from '@/types'
+
 export class WhereBuilder {
   private clauses: string[] = []
-  private paramsObj: Record<string, any> = {}
+  private paramsObj: SqlBindings = {}
 
-  add(clause: string, params?: Record<string, any>): this {
+  add(clause: string, params?: SqlBindings): this {
     if (clause) this.clauses.push(clause)
     if (params) Object.assign(this.paramsObj, params)
     return this
@@ -13,7 +15,7 @@ export class WhereBuilder {
     return `WHERE ${this.clauses.join(' AND ')}`
   }
 
-  params(): Record<string, any> {
+  params(): SqlBindings {
     return { ...this.paramsObj }
   }
 }
