@@ -1,7 +1,17 @@
-import type { FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { QueryTypes } from 'sequelize'
 
-import type { SearchPlotResponse, SearchQuery, SearchResultsResponse } from '@/types'
+import type {
+  SearchCountRow,
+  SearchFrequencyRow,
+  SearchPlotResponse,
+  SearchQuery,
+  SearchResultsResponse,
+  SearchSeriesRow,
+  SearchSpeechRow,
+  SearchTopSpeakerRow,
+  SqlBindings,
+} from '@/types'
 import { type House, HOUSE_TO_CODE } from '@/types/enum'
 import { buildHeadlineFragment, deriveDefaultStartDateDR, paginate, resampleSeries, translateAgeGroupToBirthYearBounds } from '@/utils'
 
@@ -9,7 +19,7 @@ import { buildHeadlineFragment, deriveDefaultStartDateDR, paginate, resampleSeri
 
 const DEFAULT_PAGE_SIZE = 9
 
-function buildFilterClauses(server: any, query: SearchQuery) {
+function buildFilterClauses(server: Pick<FastifyInstance, 'models'>, query: SearchQuery) {
   const house = HOUSE_TO_CODE[(query.house ?? 'dewan-rakyat') as House] ?? 0
   const startDatePromise = query.start_date ? Promise.resolve(query.start_date) : deriveDefaultStartDateDR(server.models)
   return { house, startDatePromise }
@@ -17,7 +27,7 @@ function buildFilterClauses(server: any, query: SearchQuery) {
 
 export async function getSearchResults(request: FastifyRequest<{ Querystring: SearchQuery }>, reply: FastifyReply) {
   try {
-    const { sequelize } = request.server as any
+    const { sequelize } = request.server
     const { house, startDatePromise } = buildFilterClauses(request.server, request.query)
     const startDate = await startDatePromise
     const endDate = request.query.end_date ?? new Date().toISOString().slice(0, 10)
@@ -28,7 +38,7 @@ export async function getSearchResults(request: FastifyRequest<{ Querystring: Se
     const pageInput = Math.max(1, Number(request.query.page ?? 1))
 
     const whereParts: string[] = ['pc.house = :house', 'si.date >= :startDate', 'si.date <= :endDate']
-    const repl: Record<string, any> = { house, startDate, endDate }
+    const repl: SqlBindings = { house, startDate, endDate }
 
     if (request.query.party) {
       whereParts.push('ah.party = :party')
@@ -79,13 +89,19 @@ export async function getSearchResults(request: FastifyRequest<{ Querystring: Se
     const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : ''
 
     const countSql = `SELECT count(*) as count ${baseFrom} ${whereSql}`
-    const [{ count }] = await sequelize.query(countSql, { replacements: repl, type: QueryTypes.SELECT })
+    const countRows = await sequelize.query<SearchCountRow>(countSql, { replacements: repl, type: QueryTypes.SELECT })
 
-    const total = Number(count ?? 0)
+    const total = Number(countRows[0]?.count ?? 0)
     if (total === 0) {
       return reply.code(404).type('text/plain').send('No speeches found with the given query.')
     }
-    const { page, totalPages, offset, next, previous } = paginate(total, pageInput, pageSize)
+    const {
+      // page,
+      // totalPages,
+      offset,
+      next,
+      previous,
+    } = paginate(total, pageInput, pageSize)
 
     const selectSql = `
       SELECT s.index, a.name as speaker_name, a.new_author_id as author_id, s.speech, s.timestamp,
@@ -96,39 +112,46 @@ export async function getSearchResults(request: FastifyRequest<{ Querystring: Se
       ORDER BY ${orderBy}
       LIMIT :limit OFFSET :offset
     `
-    const rows: any[] = await sequelize.query(selectSql, {
-      replacements: { ...repl, limit: pageSize, offset },
+    const selectReplacements: SqlBindings = { ...repl, limit: pageSize, offset }
+    const rows = await sequelize.query<SearchSpeechRow>(selectSql, {
+      replacements: selectReplacements,
       type: QueryTypes.SELECT,
     })
 
-    const results = rows
-      .filter(r => r.speech != null)
+    const results: SearchResultsResponse['results'] = rows
+      .filter(r => r.speech != null || r.headline != null)
       .map(r => ({
         index: Number(r.index),
         speaker: r.speaker_name,
-        author_id: r.author_id,
-        trimmed_speech: q ? r.headline : `${r.speech?.slice(0, windowSize) ?? ''}...`,
-        relevance_score: q ? r.rank : null,
-        sitting: { date: r.sitting_date, term: r.term, session: r.session, meeting: r.meeting },
+        author_id: r.author_id != null ? Number(r.author_id) : null,
+        trimmed_speech: q ? (r.headline ?? '') : `${(r.speech ?? '').slice(0, windowSize)}...`,
+        relevance_score: q ? (r.rank != null ? Number(r.rank) : null) : null,
+        sitting: {
+          date: r.sitting_date,
+          term: Number(r.term ?? 0),
+          session: Number(r.session ?? 0),
+          meeting: Number(r.meeting ?? 0),
+        },
       }))
 
     const response: SearchResultsResponse = { results, count: total, next, previous }
     return reply.send(response)
-  } catch (err: any) {
-    return reply.code(400).send({ error: err?.message ?? 'Bad Request' })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Bad Request'
+    return reply.code(400).send({ error: message })
   }
 }
 
 export async function getSearchPlot(request: FastifyRequest<{ Querystring: SearchQuery }>, reply: FastifyReply) {
   try {
-    const { sequelize } = request.server as any
+    const { sequelize } = request.server
     const { house, startDatePromise } = buildFilterClauses(request.server, request.query)
     const startDate = await startDatePromise
     const endDate = request.query.end_date ?? new Date().toISOString().slice(0, 10)
     const q = (request.query.q ?? '').toString().trim().toLowerCase()
 
     const whereParts: string[] = ['pc.house = :house', 'si.date >= :startDate', 'si.date <= :endDate']
-    const repl: Record<string, any> = { house, startDate, endDate }
+    const repl: SqlBindings = { house, startDate, endDate }
 
     if (request.query.party) {
       whereParts.push('ah.party = :party')
@@ -173,7 +196,7 @@ export async function getSearchPlot(request: FastifyRequest<{ Querystring: Searc
     const seriesSql = q
       ? `SELECT si.date::date as date, count(s.speech_id) as count ${baseFrom} ${whereSql} GROUP BY si.date ORDER BY si.date`
       : `SELECT si.date::date as date, sum(s.length) as count ${baseFrom} ${whereSql} GROUP BY si.date ORDER BY si.date`
-    const series: any[] = await sequelize.query(seriesSql, { replacements: repl, type: QueryTypes.SELECT })
+    const series = await sequelize.query<SearchSeriesRow>(seriesSql, { replacements: repl, type: QueryTypes.SELECT })
 
     // Top N speakers
     const topSql = `
@@ -184,8 +207,11 @@ export async function getSearchPlot(request: FastifyRequest<{ Querystring: Searc
       ORDER BY count DESC
       LIMIT 5
     `
-    const topRows: any[] = await sequelize.query(topSql, { replacements: repl, type: QueryTypes.SELECT })
-    const top_speakers = topRows.map(r => ({ [r.author_id]: Number(r.count) }))
+    const topRows = await sequelize.query<SearchTopSpeakerRow>(topSql, { replacements: repl, type: QueryTypes.SELECT })
+    const top_speakers = topRows.map(row => {
+      const key = row.author_id != null ? String(row.author_id) : 'unknown'
+      return { [key]: Number(row.count ?? 0) }
+    })
 
     // Word frequency
     const freqSql = `
@@ -199,7 +225,7 @@ export async function getSearchPlot(request: FastifyRequest<{ Querystring: Searc
       ORDER BY c DESC
       LIMIT 20
     `
-    const freqRows: any[] = await sequelize.query(freqSql, { replacements: repl, type: QueryTypes.SELECT })
+    const freqRows = await sequelize.query<SearchFrequencyRow>(freqSql, { replacements: repl, type: QueryTypes.SELECT })
     const top_word_freq: Record<string, number> = {}
     for (const r of freqRows) top_word_freq[r.word] = Number(r.c)
 
@@ -216,7 +242,8 @@ export async function getSearchPlot(request: FastifyRequest<{ Querystring: Searc
     const total_results = chart_data.freq.reduce((a, b) => a + b, 0)
     const plotResponse: SearchPlotResponse = { chart_data, total_results, top_word_freq, top_speakers }
     return reply.send(plotResponse)
-  } catch (err: any) {
-    return reply.code(400).send({ error: err?.message ?? 'Bad Request' })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Bad Request'
+    return reply.code(400).send({ error: message })
   }
 }

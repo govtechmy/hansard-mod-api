@@ -4,7 +4,7 @@ import type { CreateCycleBody } from '@/types'
 
 export async function createParliamentaryCycle(request: FastifyRequest<{ Body: CreateCycleBody }>, reply: FastifyReply) {
   try {
-    const ParliamentaryCycle = request.server.models.ParliamentaryCycle as any
+    const ParliamentaryCycle = request.server.models.ParliamentaryCycle
     const instance = await ParliamentaryCycle.create(request.body)
     const created = instance?.toJSON?.() ?? instance
     return reply.code(201).send(created)

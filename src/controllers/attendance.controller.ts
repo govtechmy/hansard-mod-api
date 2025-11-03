@@ -1,24 +1,13 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { QueryTypes } from 'sequelize'
 
-import type { AttendanceQuery, AttendanceResponse } from '@/types'
+import type { AttendanceQuery, AttendanceQueryRow, AttendanceResponse, AttendanceTotalRow, SqlBindings } from '@/types'
 import { type House, HOUSE_TO_CODE } from '@/types/enum'
 import { ageToGroup, aggregateAverage, aggregatePartyStats, computeTieAwareRanks } from '@/utils'
 
-const ageGroups: Record<number, string> = {
-  30: '18-29',
-  40: '30-39',
-  50: '40-49',
-  60: '50-59',
-  70: '60-69',
-  999: '70+',
-}
-
-// Local constants kept temporarily for backward compatibility; will be replaced by AGE_GROUPS from utils if needed.
-
 export async function getAttendance(request: FastifyRequest<{ Querystring: AttendanceQuery }>, reply: FastifyReply) {
   try {
-    const { sequelize } = request.server as any
+    const { sequelize } = request.server
     const house = HOUSE_TO_CODE[(request.query.house ?? 'dewan-rakyat') as House]
     if (house == null) return reply.code(400).type('text/plain').send('House type not valid.')
 
@@ -27,7 +16,7 @@ export async function getAttendance(request: FastifyRequest<{ Querystring: Atten
     const meeting = request.query.meeting ? Number(request.query.meeting) : undefined
 
     const whereParts: string[] = ['pc.house = :house']
-    const repl: Record<string, any> = { house }
+    const repl: SqlBindings = { house }
     if (term != null) {
       whereParts.push('pc.term = :term')
       repl.term = term
@@ -55,8 +44,8 @@ export async function getAttendance(request: FastifyRequest<{ Querystring: Atten
     const whereSql = `WHERE ${whereParts.join(' AND ')}`
 
     const totalSql = `SELECT count(*)::int as total FROM api_sitting si JOIN api_parliamentary_cycle pc ON pc.cycle_id = si.cycle_id ${whereSql}`
-    const [{ total }] = await sequelize.query(totalSql, { replacements: repl, type: QueryTypes.SELECT })
-    const total_sittings = Number(total ?? 0)
+    const totalRows = await sequelize.query<AttendanceTotalRow>(totalSql, { replacements: repl, type: QueryTypes.SELECT })
+    const total_sittings = Number(totalRows[0]?.total ?? 0)
 
     const mainSql = `
       SELECT
@@ -73,7 +62,7 @@ export async function getAttendance(request: FastifyRequest<{ Querystring: Atten
       GROUP BY a.name, a.ethnicity, a.sex, a.birth_year, ah.party, ar.name
       ORDER BY attendance_pct DESC
     `
-    const rows: any[] = await sequelize.query(mainSql, {
+    const rows = await sequelize.query<AttendanceQueryRow>(mainSql, {
       replacements: { ...repl, total_sittings },
       type: QueryTypes.SELECT,
     })
@@ -82,12 +71,12 @@ export async function getAttendance(request: FastifyRequest<{ Querystring: Atten
       return reply.code(404).type('text/plain').send('No attendance data found with the given query.')
     }
 
-    const enriched = rows.map(r => ({
+    const enriched: AttendanceResponse['tab_individual'] = rows.map(r => ({
       name: r.name,
-      ethnicity: r.ethnicity,
-      sex: r.sex,
+      ethnicity: r.ethnicity ?? '',
+      sex: r.sex ?? '',
       age: r.age != null ? Number(r.age) : null,
-      party: r.party,
+      party: r.party ?? null,
       area: r.area ?? null,
       total_attended: Number(r.total_attended),
       attendance_pct: Number(r.attendance_pct),
@@ -106,7 +95,7 @@ export async function getAttendance(request: FastifyRequest<{ Querystring: Atten
 
     // Party aggregates
     const tab_party = aggregatePartyStats(
-      enriched.map(r => ({ party: r.party, attendance_pct: r.attendance_pct, total_attended: r.total_attended, total: r.total })),
+      enriched.map(r => ({ party: r.party ?? '', attendance_pct: r.attendance_pct, total_attended: r.total_attended, total: r.total })),
     )
 
     // Charts

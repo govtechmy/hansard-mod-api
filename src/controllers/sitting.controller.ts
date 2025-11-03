@@ -1,9 +1,28 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { Op } from 'sequelize'
 
-import type { GetSittingQuery, GetSittingResponse, UpsertSittingBody, UpsertSittingResponse } from '@/types'
+import type {
+  AuthorHistory as AuthorHistoryEntity,
+  GetSittingQuery,
+  GetSittingResponse,
+  ParliamentaryCycleRow,
+  SittingWithCycleRow,
+  UpsertSittingBody,
+  UpsertSittingResponse,
+} from '@/types'
 import { type House, HOUSE_TO_CODE } from '@/types/enum'
+import type { RawSpeechRow } from '@/utils'
 import { buildNestedSpeeches, buildSpeechRows } from '@/utils'
+
+function parseSpeechData(payload: string | null | undefined): RawSpeechRow[] | null {
+  if (!payload) return null
+  try {
+    const parsed = JSON.parse(payload)
+    return Array.isArray(parsed) ? (parsed as RawSpeechRow[]) : null
+  } catch {
+    return null
+  }
+}
 
 // Using centralized inferred types
 
@@ -11,7 +30,7 @@ import { buildNestedSpeeches, buildSpeechRows } from '@/utils'
 
 export async function getSitting(request: FastifyRequest<{ Querystring: GetSittingQuery }>, reply: FastifyReply) {
   try {
-    const { Sitting, ParliamentaryCycle } = request.server.models as any
+    const { Sitting, ParliamentaryCycle } = request.server.models
     const houseType = request.query.house as House | undefined
     const house = houseType != null ? HOUSE_TO_CODE[houseType] : null
     if (houseType == null || house == null) {
@@ -24,15 +43,22 @@ export async function getSitting(request: FastifyRequest<{ Querystring: GetSitti
       return reply.code(400).type('text/plain').send('Invalid date format. Date should be in YYYY-MM-DD format.')
     }
 
-    const sitting = await Sitting.findOne({
+    const sitting = (await Sitting.findOne({
       include: [{ model: ParliamentaryCycle, as: 'cycle', required: true, where: { house } }],
       where: { date: dateStr },
       raw: true,
       nest: true,
-    })
+    })) as unknown as SittingWithCycleRow | null
 
     if (!sitting) {
       return reply.code(404).type('text/plain').send('Sitting ID does not exist.')
+    }
+
+    let speeches: unknown = []
+    try {
+      speeches = JSON.parse(sitting.speech_data ?? '[]')
+    } catch {
+      speeches = []
     }
 
     const data = {
@@ -54,17 +80,18 @@ export async function getSitting(request: FastifyRequest<{ Querystring: GetSitti
         has_dataset: sitting.has_dataset,
         is_final: sitting.is_final,
       },
-      speeches: JSON.parse(sitting.speech_data ?? '[]'),
+      speeches,
     }
     return reply.send(data as GetSittingResponse)
-  } catch (err: any) {
-    return reply.code(400).send({ error: err?.message ?? 'Bad Request' })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Bad Request'
+    return reply.code(400).send({ error: message })
   }
 }
 
 export async function upsertSitting(request: FastifyRequest<{ Body: UpsertSittingBody }>, reply: FastifyReply) {
   try {
-    const { ParliamentaryCycle, Sitting, Speech, AuthorHistory } = request.server.models as any
+    const { ParliamentaryCycle, Sitting, Speech, AuthorHistory } = request.server.models
 
     // Check existing by filename
     const { filename, house: houseType, date: dateStr } = request.body
@@ -80,101 +107,96 @@ export async function upsertSitting(request: FastifyRequest<{ Body: UpsertSittin
     const existing = await Sitting.findOne({ where: { filename } })
 
     // Resolve cycle_id for date range and house
-    const cycle = await ParliamentaryCycle.findOne({
+    const cycle = (await ParliamentaryCycle.findOne({
       where: {
         house,
         start_date: { [Op.lte]: dateStr },
         end_date: { [Op.gte]: dateStr },
       },
       raw: true,
-    })
+    })) as ParliamentaryCycleRow | null
     if (!cycle) {
       return reply.code(400).send({ error: 'Parliamentary cycle not found for date/house.' })
     }
 
-    // Prepare speech_data JSON for catalogue (nested levels)
-    let rawSpeechList: any[] = []
-    try {
-      rawSpeechList = JSON.parse(request.body.speech_data ?? '[]')
-    } catch {
-      // If invalid JSON, still follow Django behavior: create/update sitting and return 201 with error
-    }
-    let nestedSpeechJson: any[] = []
-    if (Array.isArray(rawSpeechList) && rawSpeechList.length) {
-      nestedSpeechJson = buildNestedSpeeches(rawSpeechList)
-    }
+    const speechList = parseSpeechData(request.body.speech_data) ?? []
+    const hasSpeechPayload = speechList.length > 0
+    const nestedSpeechJson = hasSpeechPayload ? buildNestedSpeeches(speechList) : []
 
-    let sitting: any
-    if (existing) {
-      await Speech.destroy({ where: { sitting_id: existing.sitting_id } })
-      await existing.update({
+    let sittingInstance = existing
+    let sittingId: number
+    if (sittingInstance) {
+      const existingId = Number(sittingInstance.get('sitting_id'))
+      sittingId = existingId
+      await Speech.destroy({ where: { sitting_id: existingId } })
+      await sittingInstance.update({
         date: dateStr,
         cycle_id: cycle.cycle_id,
         speech_data: JSON.stringify(nestedSpeechJson),
       })
-      sitting = existing
     } else {
-      sitting = await Sitting.create({
+      sittingInstance = await Sitting.create({
         filename,
         date: dateStr,
         cycle_id: cycle.cycle_id,
         speech_data: JSON.stringify(nestedSpeechJson),
       })
+      sittingId = Number(sittingInstance.get('sitting_id'))
     }
 
-    // Try to bulk create Speech rows if we have valid raw speech list
+    const serializedSitting = sittingInstance?.toJSON?.() ?? sittingInstance
+
+    if (!hasSpeechPayload) {
+      return reply.code(201).send({ sitting: serializedSitting, speech_errors: 'Invalid JSON in speech_data' } as UpsertSittingResponse)
+    }
+
     try {
-      if (Array.isArray(rawSpeechList) && rawSpeechList.length) {
-        // Identify active AuthorHistory records for the sitting date
-        const authorIds = Array.from(
-          new Set(
-            rawSpeechList
-              .map((r: any) => r?.speaker)
-              .filter((v: any) => v !== null && v !== undefined)
-              .map((v: any) => Number(v)),
-          ),
-        )
+      const authorIds = Array.from(
+        new Set(
+          speechList
+            .map(row => (row.speaker != null ? Number(row.speaker) : null))
+            .filter((value): value is number => value != null && Number.isFinite(value)),
+        ),
+      )
 
-        const activeHistoryRecords = await AuthorHistory.findAll({
-          where: {
-            author_id: { [Op.in]: authorIds },
-            start_date: { [Op.lte]: dateStr },
-            [Op.or]: [{ end_date: { [Op.gte]: dateStr } }, { end_date: { [Op.is]: null } }],
-          },
-          raw: true,
-        })
+      const activeHistoryRecords = (await AuthorHistory.findAll({
+        where: {
+          author_id: { [Op.in]: authorIds },
+          start_date: { [Op.lte]: dateStr },
+          [Op.or]: [{ end_date: { [Op.gte]: dateStr } }, { end_date: { [Op.is]: null } }],
+        },
+        raw: true,
+      })) as unknown as AuthorHistoryEntity[]
 
-        const authorHistoryLookup = new Map<number, number>()
-        // Prefer records with end_date (more specific) first
-        for (const rec of activeHistoryRecords.filter((r: any) => r.end_date != null)) {
+      const authorHistoryLookup = new Map<number, number>()
+      for (const rec of activeHistoryRecords.filter(record => record.end_date != null)) {
+        authorHistoryLookup.set(rec.author_id, rec.record_id)
+      }
+      for (const rec of activeHistoryRecords.filter(record => record.end_date == null)) {
+        if (!authorHistoryLookup.has(rec.author_id)) {
           authorHistoryLookup.set(rec.author_id, rec.record_id)
         }
-        for (const rec of activeHistoryRecords.filter((r: any) => r.end_date == null)) {
-          if (!authorHistoryLookup.has(rec.author_id)) authorHistoryLookup.set(rec.author_id, rec.record_id)
-        }
-
-        const speechRows = buildSpeechRows(rawSpeechList, sitting.sitting_id, authorHistoryLookup)
-
-        const created = await Speech.bulkCreate(speechRows, { returning: true, validate: true })
-        if (created.length !== speechRows.length) {
-          return reply.code(201).send({
-            sitting: sitting?.toJSON?.() ?? sitting,
-            warning: `Data integrity issue: ${created.length} speeches created but ${speechRows.length} expected`,
-          })
-        }
-        return reply.code(201).send((sitting?.toJSON?.() ?? sitting) as UpsertSittingResponse)
       }
-      // No raw speech list (invalid JSON or empty)
-      return reply
-        .code(201)
-        .send({ sitting: sitting?.toJSON?.() ?? sitting, speech_errors: 'Invalid JSON in speech_data' } as UpsertSittingResponse)
-    } catch (e: any) {
-      // Speech creation failed; still return 201 with error details
-      return reply
-        .code(201)
-        .send({ sitting: sitting?.toJSON?.() ?? sitting, speech_errors: e?.message ?? String(e) } as UpsertSittingResponse)
+
+      const speechRows = buildSpeechRows(speechList, sittingId, authorHistoryLookup)
+
+      const created = await Speech.bulkCreate(speechRows as unknown as Parameters<typeof Speech.bulkCreate>[0], {
+        returning: true,
+        validate: true,
+      })
+      if (created.length !== speechRows.length) {
+        return reply.code(201).send({
+          sitting: serializedSitting,
+          warning: `Data integrity issue: ${created.length} speeches created but ${speechRows.length} expected`,
+        })
+      }
+      return reply.code(201).send(serializedSitting as UpsertSittingResponse)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e)
+      return reply.code(201).send({ sitting: serializedSitting, speech_errors: message } as UpsertSittingResponse)
     }
-  } catch (err: any) {
-    return reply.code(400).send({ error: err?.message ?? 'Bad Request' })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Bad Request'
+    return reply.code(400).send({ error: message })
   }
 }

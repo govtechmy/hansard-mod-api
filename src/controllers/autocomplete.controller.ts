@@ -1,13 +1,13 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { QueryTypes } from 'sequelize'
 
-import type { AutocompleteQuery, AutocompleteResponse } from '@/types'
+import type { AutocompleteQuery, AutocompleteResponse, AutocompleteSpeechRow, SqlBindings } from '@/types'
 import { type House, HOUSE_TO_CODE } from '@/types/enum'
 import { buildPrefixTsQuery, extractSuggestions, normalizeQ } from '@/utils'
 
 export async function getAutocomplete(request: FastifyRequest<{ Querystring: AutocompleteQuery }>, reply: FastifyReply) {
   try {
-    const { sequelize } = request.server as any
+    const { sequelize } = request.server
     const rawQuery = normalizeQ(request.query.q)
     const maxSuggestions = Number(request.query.limit ?? 8)
     if (rawQuery.length < 2) {
@@ -26,8 +26,9 @@ export async function getAutocomplete(request: FastifyRequest<{ Querystring: Aut
         AND s.speech_vector @@ plainto_tsquery('english', :q)
       LIMIT 100
     `
-    let speeches: any[] = await sequelize.query(exactSql, {
-      replacements: { house, q: rawQuery },
+    const exactReplacements: SqlBindings = { house, q: rawQuery }
+    let speeches = await sequelize.query<AutocompleteSpeechRow>(exactSql, {
+      replacements: exactReplacements,
       type: QueryTypes.SELECT,
     })
 
@@ -43,8 +44,9 @@ export async function getAutocomplete(request: FastifyRequest<{ Querystring: Aut
           AND s.speech_vector @@ to_tsquery('english', :raw)
         LIMIT 100
       `
-      speeches = await sequelize.query(prefixSql, {
-        replacements: { house, raw: rawTs },
+      const prefixReplacements: SqlBindings = { house, raw: rawTs }
+      speeches = await sequelize.query<AutocompleteSpeechRow>(prefixSql, {
+        replacements: prefixReplacements,
         type: QueryTypes.SELECT,
       })
     }
@@ -54,6 +56,8 @@ export async function getAutocomplete(request: FastifyRequest<{ Querystring: Aut
     const res: AutocompleteResponse = { suggestions, query: rawQuery }
     return reply.send(res)
   } catch {
-    return reply.code(200).send({ suggestions: [], query: normalizeQ(request.query.q) } as AutocompleteResponse)
+    const query = normalizeQ(request.query.q)
+    const fallback: AutocompleteResponse = { suggestions: [], query }
+    return reply.code(200).send(fallback)
   }
 }
