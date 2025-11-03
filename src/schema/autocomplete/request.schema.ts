@@ -7,4 +7,3 @@ export const autocompleteQuerySchema = z.object({
   limit: z.coerce.number().optional(),
   house: z.enum(HOUSE).optional(),
 })
-

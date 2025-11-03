@@ -13,4 +13,3 @@ export const upsertSittingBodySchema = z.object({
   date: z.string().min(1),
   speech_data: z.string().min(1), // JSON string
 })
-

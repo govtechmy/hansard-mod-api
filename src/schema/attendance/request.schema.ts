@@ -8,4 +8,3 @@ export const attendanceQuerySchema = z.object({
   session: z.string().optional(),
   meeting: z.string().optional(),
 })
-
