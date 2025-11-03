@@ -1,23 +1,23 @@
-import type { RESPONSE_STATUS } from "./enum"
+import type { RESPONSE_STATUS } from './enum'
 
 export interface ResponseListModel {
-    items: unknown[]
-    totalRecords: number
-    pageNumber: number
-    pageSize: number
+  items: unknown[]
+  totalRecords: number
+  pageNumber: number
+  pageSize: number
+}
+
+export interface ResponseModel {
+  status: RESPONSE_STATUS
+  statusCode: number
+  data: unknown | ResponseListModel
+  error?: {
+    code: string
+    message: string
+    details?: Record<string, unknown>
   }
-  
-  export interface ResponseModel {
-    status: RESPONSE_STATUS
-    statusCode: number
-    data: unknown | ResponseListModel
-    error?: {
-      code: string
-      message: string
-      details?: Record<string, unknown>
-    }
-  }
-  
+}
+
 // Domain entities (mirror Django models for typing)
 
 export interface Area {
@@ -52,7 +52,7 @@ export interface Author {
   name: string
   birth_year: number | null
   ethnicity: string
-  sex: "m" | "f"
+  sex: 'm' | 'f'
 }
 
 export interface AuthorHistory {

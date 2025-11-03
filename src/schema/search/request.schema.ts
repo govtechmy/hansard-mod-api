@@ -1,5 +1,6 @@
-import { z } from "zod";
-import { HOUSE } from "@/types/enum";
+import { z } from 'zod'
+
+import { HOUSE } from '@/types/enum'
 
 export const searchQuerySchema = z.object({
   house: z.enum(HOUSE).optional(),
@@ -8,16 +9,13 @@ export const searchQuerySchema = z.object({
   window_size: z.coerce.number().optional(),
   party: z.string().optional(),
   age_group: z.string().optional(),
-  sex: z.enum(["m", "f"]).optional(),
+  sex: z.enum(['m', 'f']).optional(),
   ethnicity: z.string().optional(),
   q: z.string().optional(),
   uid: z.coerce.number().optional(),
   page: z.coerce.number().optional(),
   page_size: z.coerce.number().optional(),
-});
+})
 
-export const searchPlotQuerySchema = searchQuerySchema;
-
-
-
+export const searchPlotQuerySchema = searchQuerySchema
 

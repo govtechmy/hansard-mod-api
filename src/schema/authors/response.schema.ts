@@ -1,15 +1,12 @@
-import { z } from "zod";
-import { RESPONSE_STATUS } from "@/types/enum";
+import { z } from 'zod'
 
 export const authorItemSchema = z.object({
   new_author_id: z.number(),
   name: z.string(),
   birth_year: z.number().nullable(),
   ethnicity: z.string(),
-  sex: z.enum(["m", "f"]),
-});
+  sex: z.enum(['m', 'f']),
+})
 
 // Raw payload for GET /author
-export const getAuthorsResponseSchema = z.array(authorItemSchema);
-
-
+export const getAuthorsResponseSchema = z.array(authorItemSchema)

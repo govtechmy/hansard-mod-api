@@ -1,5 +1,4 @@
-import { z } from "zod";
-import { RESPONSE_STATUS } from "@/types/enum";
+import { z } from 'zod'
 
 export const searchResultItemSchema = z.object({
   index: z.number(),
@@ -13,7 +12,7 @@ export const searchResultItemSchema = z.object({
     session: z.number(),
     meeting: z.number(),
   }),
-});
+})
 
 // Raw payload for GET /search
 export const searchResultsResponseSchema = z.object({
@@ -21,7 +20,7 @@ export const searchResultsResponseSchema = z.object({
   count: z.number(),
   next: z.number().nullable(),
   previous: z.number().nullable(),
-});
+})
 
 // Raw payload for GET /search-plot
 export const searchPlotResponseSchema = z.object({
@@ -29,6 +28,4 @@ export const searchPlotResponseSchema = z.object({
   total_results: z.number(),
   top_word_freq: z.record(z.string(), z.number()),
   top_speakers: z.array(z.record(z.string(), z.number())),
-});
-
-
+})

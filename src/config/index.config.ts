@@ -1,4 +1,2 @@
-export { env } from "./env.config";
-export { loggerOptions } from "./logger";
-
-
+export { env } from './env.config'
+export { loggerOptions } from './logger'

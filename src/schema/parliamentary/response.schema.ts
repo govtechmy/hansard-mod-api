@@ -1,5 +1,4 @@
-import { z } from "zod";
-import { RESPONSE_STATUS } from "@/types/enum";
+import { z } from 'zod'
 
 export const parliamentaryCycleItemSchema = z.object({
   cycle_id: z.number(),
@@ -9,9 +8,7 @@ export const parliamentaryCycleItemSchema = z.object({
   term: z.number(),
   session: z.number(),
   meeting: z.number(),
-});
+})
 
 // Raw payload for POST /parliamentary-cycle
-export const createParliamentaryCycleResponseSchema = parliamentaryCycleItemSchema;
-
-
+export const createParliamentaryCycleResponseSchema = parliamentaryCycleItemSchema

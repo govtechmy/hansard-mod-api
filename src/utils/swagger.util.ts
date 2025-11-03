@@ -1,4 +1,4 @@
-import { standardErrorResponseSchema } from "@/schema/shared"
+import { standardErrorResponseSchema } from '@/schema/shared'
 
 export const stdAuthResponses = {
   401: standardErrorResponseSchema.describe('Unauthorized or invalid/expired token'),

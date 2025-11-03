@@ -1,35 +1,33 @@
-import type { FastifyInstance } from "fastify";
-import fastifySwagger from "@fastify/swagger";
-import fastifySwaggerUi from "@fastify/swagger-ui";
+import fastifySwagger from '@fastify/swagger'
+import fastifySwaggerUi from '@fastify/swagger-ui'
+import type { FastifyInstance } from 'fastify'
 
 export async function registerSwaggerPlugins(app: FastifyInstance): Promise<void> {
   await app.register(fastifySwagger, {
     openapi: {
       info: {
-        title: "hansard Mod API",
-        description: "API documentation for hansard Mod service",
-        version: "1.0.0",
+        title: 'hansard Mod API',
+        description: 'API documentation for hansard Mod service',
+        version: '1.0.0',
       },
       components: {
         securitySchemes: {
           bearerAuth: {
-            type: "http",
-            scheme: "bearer",
-            bearerFormat: "JWT",
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
           },
         },
       },
     },
-  });
+  })
 
   await app.register(fastifySwaggerUi, {
-    routePrefix: "/docs",
+    routePrefix: '/docs',
     uiConfig: {
-      docExpansion: "list",
+      docExpansion: 'list',
       deepLinking: true,
     },
     staticCSP: true,
-  });
+  })
 }
-
-

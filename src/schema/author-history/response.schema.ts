@@ -1,5 +1,4 @@
-import { z } from "zod";
-import { RESPONSE_STATUS } from "@/types/enum";
+import { z } from 'zod'
 
 export const authorHistoryItemSchema = z.object({
   record_id: z.number(),
@@ -10,9 +9,7 @@ export const authorHistoryItemSchema = z.object({
   service_posts: z.string().nullable(),
   start_date: z.string(),
   end_date: z.string().nullable(),
-});
+})
 
 // Raw payload for GET /author-history
-export const getAuthorHistoryResponseSchema = z.array(authorHistoryItemSchema);
-
-
+export const getAuthorHistoryResponseSchema = z.array(authorHistoryItemSchema)

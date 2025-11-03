@@ -1,71 +1,68 @@
-import type { FastifyReply, FastifyRequest } from "fastify";
-import { Sequelize, QueryTypes } from "sequelize";
-import { createErrorResponse, createSuccessResponse } from "@/utils/response.util";
-import { HOUSE_TO_CODE, type House } from "@/types/enum";
+import type { FastifyReply, FastifyRequest } from 'fastify'
+import { QueryTypes } from 'sequelize'
 
-type AttendanceQuery = { house?: House; term?: string; session?: string; meeting?: string };
+import { type House, HOUSE_TO_CODE } from '@/types/enum'
+
+type AttendanceQuery = { house?: House; term?: string; session?: string; meeting?: string }
 
 const ageGroups: Record<number, string> = {
-  30: "18-29",
-  40: "30-39",
-  50: "40-49",
-  60: "50-59",
-  70: "60-69",
-  999: "70+",
-};
+  30: '18-29',
+  40: '30-39',
+  50: '40-49',
+  60: '50-59',
+  70: '60-69',
+  999: '70+',
+}
 
 function ageToGroup(age: number | null): string {
-  if (age == null || Number.isNaN(age)) return "70+";
+  if (age == null || Number.isNaN(age)) return '70+'
   const keys = Object.keys(ageGroups)
-    .map((k) => Number(k))
-    .sort((a, b) => a - b);
+    .map(k => Number(k))
+    .sort((a, b) => a - b)
   for (const k of keys) {
-    if (age < k) return ageGroups[k]!;
+    if (age < k) return ageGroups[k]!
   }
-  return ageGroups[Math.max(...keys)]!;
+  return ageGroups[Math.max(...keys)]!
 }
 
-function generateBarmeterData(rows: Array<{ key: string; attendance_pct: number }>, keyName: string) {
-  const map = new Map<string, { sum: number; n: number }>();
+function generateBarmeterData(rows: Array<{ key: string; attendance_pct: number }>) {
+  const map = new Map<string, { sum: number; n: number }>()
   for (const r of rows) {
-    const k = r.key ?? "";
-    const e = map.get(k) ?? { sum: 0, n: 0 };
-    e.sum += r.attendance_pct;
-    e.n += 1;
-    map.set(k, e);
+    const k = r.key ?? ''
+    const e = map.get(k) ?? { sum: 0, n: 0 }
+    e.sum += r.attendance_pct
+    e.n += 1
+    map.set(k, e)
   }
-  return Array.from(map.entries()).map(([k, v]) => ({ x: k, y: v.n ? v.sum / v.n : 0 }));
+  return Array.from(map.entries()).map(([k, v]) => ({ x: k, y: v.n ? v.sum / v.n : 0 }))
 }
 
-export async function getAttendance(
-  request: FastifyRequest<{ Querystring: AttendanceQuery }>,
-  reply: FastifyReply,
-) {
+export async function getAttendance(request: FastifyRequest<{ Querystring: AttendanceQuery }>, reply: FastifyReply) {
   try {
-    const { sequelize } = request.server as any;
-    const house = HOUSE_TO_CODE[(request.query.house ?? "dewan-rakyat") as House];
-    if (house == null) return reply.code(400).type("text/plain").send("House type not valid.");
+    const { sequelize } = request.server as any
+    const house = HOUSE_TO_CODE[(request.query.house ?? 'dewan-rakyat') as House]
+    if (house == null) return reply.code(400).type('text/plain').send('House type not valid.')
 
-    const term = request.query.term ? Number(request.query.term) : undefined;
-    const session = request.query.session ? Number(request.query.session) : undefined;
-    const meeting = request.query.meeting ? Number(request.query.meeting) : undefined;
+    const term = request.query.term ? Number(request.query.term) : undefined
+    const session = request.query.session ? Number(request.query.session) : undefined
+    const meeting = request.query.meeting ? Number(request.query.meeting) : undefined
 
-    const whereParts: string[] = ["pc.house = :house"];
-    const repl: Record<string, any> = { house };
+    const whereParts: string[] = ['pc.house = :house']
+    const repl: Record<string, any> = { house }
     if (term != null) {
-      whereParts.push("pc.term = :term");
-      repl.term = term;
+      whereParts.push('pc.term = :term')
+      repl.term = term
     }
     if (session != null) {
-      whereParts.push("pc.session = :session");
-      repl.session = session;
+      whereParts.push('pc.session = :session')
+      repl.session = session
     } else if (term === 14) {
       // Special handling: only include session >= 4 for 14th parliament
-      whereParts.push("pc.session >= 4");
+      whereParts.push('pc.session >= 4')
     }
     if (meeting != null) {
-      whereParts.push("pc.meeting = :meeting");
-      repl.meeting = meeting;
+      whereParts.push('pc.meeting = :meeting')
+      repl.meeting = meeting
     }
 
     const baseJoin = `
@@ -75,12 +72,12 @@ export async function getAttendance(
       JOIN api_parliamentary_cycle pc ON pc.cycle_id = si.cycle_id
       JOIN api_author a ON a.new_author_id = ah.author_id
       LEFT JOIN api_area ar ON ar.id = ah.area_id
-    `;
-    const whereSql = `WHERE ${whereParts.join(" AND ")}`;
+    `
+    const whereSql = `WHERE ${whereParts.join(' AND ')}`
 
-    const totalSql = `SELECT count(*)::int as total FROM api_sitting si JOIN api_parliamentary_cycle pc ON pc.cycle_id = si.cycle_id ${whereSql}`;
-    const [{ total }] = await sequelize.query(totalSql, { replacements: repl, type: QueryTypes.SELECT });
-    const total_sittings = Number(total ?? 0);
+    const totalSql = `SELECT count(*)::int as total FROM api_sitting si JOIN api_parliamentary_cycle pc ON pc.cycle_id = si.cycle_id ${whereSql}`
+    const [{ total }] = await sequelize.query(totalSql, { replacements: repl, type: QueryTypes.SELECT })
+    const total_sittings = Number(total ?? 0)
 
     const mainSql = `
       SELECT
@@ -96,17 +93,17 @@ export async function getAttendance(
       ${whereSql}
       GROUP BY a.name, a.ethnicity, a.sex, a.birth_year, ah.party, ar.name
       ORDER BY attendance_pct DESC
-    `;
+    `
     const rows: any[] = await sequelize.query(mainSql, {
       replacements: { ...repl, total_sittings },
       type: QueryTypes.SELECT,
-    });
+    })
 
     if (!rows.length || total_sittings === 0) {
-      return reply.code(404).type("text/plain").send("No attendance data found with the given query.");
+      return reply.code(404).type('text/plain').send('No attendance data found with the given query.')
     }
 
-    const enriched = rows.map((r) => ({
+    const enriched = rows.map(r => ({
       name: r.name,
       ethnicity: r.ethnicity,
       sex: r.sex,
@@ -117,29 +114,29 @@ export async function getAttendance(
       attendance_pct: Number(r.attendance_pct),
       total: total_sittings,
       rank: 0,
-      age_group: "",
-    }));
+      age_group: '',
+    }))
 
     // Compute tie-aware ranks (method="min") and age groups
-    enriched.sort((a, b) => b.attendance_pct - a.attendance_pct);
-    const uniquePcts = Array.from(new Set(enriched.map((r) => r.attendance_pct))).sort((a, b) => b - a);
-    const rankMap = new Map<number, number>();
-    uniquePcts.forEach((pct, idx) => rankMap.set(pct, idx + 1));
-    enriched.forEach((r) => {
-      r.rank = rankMap.get(r.attendance_pct) ?? 0;
-      r.age_group = ageToGroup(r.age);
-    });
+    enriched.sort((a, b) => b.attendance_pct - a.attendance_pct)
+    const uniquePcts = Array.from(new Set(enriched.map(r => r.attendance_pct))).sort((a, b) => b - a)
+    const rankMap = new Map<number, number>()
+    uniquePcts.forEach((pct, idx) => rankMap.set(pct, idx + 1))
+    enriched.forEach(r => {
+      r.rank = rankMap.get(r.attendance_pct) ?? 0
+      r.age_group = ageToGroup(r.age)
+    })
 
     // Party aggregates
-    const partyMap = new Map<string, { attendance_pct_sum: number; total_attended: number; total: number; total_seats: number }>();
+    const partyMap = new Map<string, { attendance_pct_sum: number; total_attended: number; total: number; total_seats: number }>()
     for (const r of enriched) {
-      const key = r.party ?? "";
-      const e = partyMap.get(key) ?? { attendance_pct_sum: 0, total_attended: 0, total: 0, total_seats: 0 };
-      e.attendance_pct_sum += r.attendance_pct;
-      e.total_attended += r.total_attended;
-      e.total += r.total;
-      e.total_seats += 1;
-      partyMap.set(key, e);
+      const key = r.party ?? ''
+      const e = partyMap.get(key) ?? { attendance_pct_sum: 0, total_attended: 0, total: 0, total_seats: 0 }
+      e.attendance_pct_sum += r.attendance_pct
+      e.total_attended += r.total_attended
+      e.total += r.total
+      e.total_seats += 1
+      partyMap.set(key, e)
     }
     const tab_party = Array.from(partyMap.entries()).map(([party, v]) => ({
       party,
@@ -147,21 +144,20 @@ export async function getAttendance(
       total_attended: v.total_attended,
       total: v.total,
       total_seats: v.total_seats,
-    }));
+    }))
 
     // Charts
-    const chart_sex = generateBarmeterData(enriched.map((r) => ({ key: r.sex, attendance_pct: r.attendance_pct })), "sex");
-    const chart_age = generateBarmeterData(enriched.map((r) => ({ key: r.age_group, attendance_pct: r.attendance_pct })), "age_group");
-    const chart_ethnicity = generateBarmeterData(enriched.map((r) => ({ key: r.ethnicity, attendance_pct: r.attendance_pct })), "ethnicity");
+    const chart_sex = generateBarmeterData(enriched.map(r => ({ key: r.sex, attendance_pct: r.attendance_pct })))
+    const chart_age = generateBarmeterData(enriched.map(r => ({ key: r.age_group, attendance_pct: r.attendance_pct })))
+    const chart_ethnicity = generateBarmeterData(enriched.map(r => ({ key: r.ethnicity, attendance_pct: r.attendance_pct })))
 
     return reply.send({
       charts: { sex: chart_sex, age: chart_age, ethnicity: chart_ethnicity },
       tab_individual: enriched,
       tab_party,
-    });
-  } catch (err: any) {
-    return reply.code(400).send({ error: err?.message ?? "Bad Request" });
+    })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Bad Request'
+    return reply.code(400).send({ error: message })
   }
 }
-
-

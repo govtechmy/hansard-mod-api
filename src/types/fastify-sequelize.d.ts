@@ -1,11 +1,10 @@
-import "fastify";
-import type { Sequelize, ModelStatic, Model } from "sequelize";
+import 'fastify'
 
-declare module "fastify" {
+import type { Model, ModelStatic, Sequelize } from 'sequelize'
+
+declare module 'fastify' {
   interface FastifyInstance {
-    sequelize: Sequelize;
-    models: Record<string, ModelStatic<Model>>;
+    sequelize: Sequelize
+    models: Record<string, ModelStatic<Model>>
   }
 }
-
-

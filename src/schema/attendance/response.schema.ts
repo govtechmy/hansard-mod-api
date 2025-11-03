@@ -1,7 +1,6 @@
-import { z } from "zod";
-import { RESPONSE_STATUS } from "@/types/enum";
+import { z } from 'zod'
 
-const chartPointSchema = z.object({ x: z.string(), y: z.number() });
+const chartPointSchema = z.object({ x: z.string(), y: z.number() })
 
 // Raw payload for GET /attendance
 export const attendanceResponseSchema = z.object({
@@ -34,6 +33,4 @@ export const attendanceResponseSchema = z.object({
       total_seats: z.number(),
     }),
   ),
-});
-
-
+})

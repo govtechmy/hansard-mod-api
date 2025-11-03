@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod'
 
 export const speechItemSchema = z.object({
   sitting_id: z.number(),
@@ -12,10 +12,7 @@ export const speechItemSchema = z.object({
   level_2: z.string().nullable(),
   level_3: z.string().nullable(),
   is_annotation: z.boolean(),
-});
+})
 
-export const speechBulkBodySchema = z.array(speechItemSchema);
-
-
-
+export const speechBulkBodySchema = z.array(speechItemSchema)
 

@@ -1,8 +1,8 @@
-import { DataTypes, type Sequelize } from "sequelize";
+import { DataTypes, type Sequelize } from 'sequelize'
 
 export function initAuthorHistoryModel(sequelize: Sequelize) {
   return sequelize.define(
-    "AuthorHistory",
+    'AuthorHistory',
     {
       record_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       author_id: { type: DataTypes.INTEGER, allowNull: false },
@@ -13,8 +13,6 @@ export function initAuthorHistoryModel(sequelize: Sequelize) {
       start_date: { type: DataTypes.DATEONLY, allowNull: false },
       end_date: { type: DataTypes.DATEONLY, allowNull: true },
     },
-    { tableName: "api_author_history", timestamps: false },
-  );
+    { tableName: 'api_author_history', timestamps: false },
+  )
 }
-
-

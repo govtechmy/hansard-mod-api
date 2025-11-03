@@ -1,20 +1,19 @@
-import type { FastifyInstance } from "fastify";
-import { getAutocomplete } from "@/controllers/autocomplete.controller";
-import { autocompleteQuerySchema, autocompleteResponseSchema } from "@/schema";
+import type { FastifyInstance } from 'fastify'
+
+import { getAutocomplete } from '@/controllers/autocomplete.controller'
+import { autocompleteQuerySchema, autocompleteResponseSchema } from '@/schema'
 
 export async function registerAutocompleteRoutes(app: FastifyInstance) {
   app.get(
-    "/autocomplete",
+    '/autocomplete',
     {
       schema: {
-        tags: ["Search"],
-        summary: "Autocomplete keyword suggestions",
+        tags: ['Search'],
+        summary: 'Autocomplete keyword suggestions',
         querystring: autocompleteQuerySchema,
         response: { 200: autocompleteResponseSchema },
       },
     },
     getAutocomplete,
-  );
+  )
 }
-
-

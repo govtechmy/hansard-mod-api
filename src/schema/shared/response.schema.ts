@@ -1,9 +1,5 @@
 import z from 'zod'
 
-import { RESPONSE_STATUS } from '@/types/enum'
-
-import { baseResponseSchema } from '../base/base.schema'
-
 export const standardListResponseSchema = z.object({
   items: z.array(z.any()),
   totalRecords: z.number(),
@@ -18,13 +14,13 @@ export const errorResponseSchema = z.object({
 })
 
 export const standardResponseSchema = z.object({
-  status: z.enum(RESPONSE_STATUS),
+  status: z.string(),
   statusCode: z.number(),
   data: z.union([standardListResponseSchema, z.any()]).optional(),
 })
 
 export const standardErrorResponseSchema = z.object({
-  status: z.enum(RESPONSE_STATUS).default(RESPONSE_STATUS.ERROR),
+  status: z.string(),
   statusCode: z.number(),
   data: z.null().optional(),
   error: errorResponseSchema.optional(),

@@ -1,5 +1,2 @@
-export { getCatalogueResponseSchema, catalogueDataSchema } from "./response.schema";
-
-
-
+export { catalogueDataSchema, getCatalogueResponseSchema } from './response.schema'
 

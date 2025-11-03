@@ -1,4 +1,2 @@
-export { getAuthorHistoryResponseSchema, authorHistoryItemSchema } from "./response.schema";
-export * from "./request.schema";
-
-
+export * from './request.schema'
+export { authorHistoryItemSchema, getAuthorHistoryResponseSchema } from './response.schema'

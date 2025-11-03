@@ -1,8 +1,8 @@
-import { DataTypes, type Sequelize } from "sequelize";
+import { DataTypes, type Sequelize } from 'sequelize'
 
 export function initSittingModel(sequelize: Sequelize) {
   return sequelize.define(
-    "Sitting",
+    'Sitting',
     {
       sitting_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       cycle_id: { type: DataTypes.INTEGER, allowNull: false },
@@ -10,10 +10,8 @@ export function initSittingModel(sequelize: Sequelize) {
       filename: { type: DataTypes.STRING(255), allowNull: false, unique: true },
       has_dataset: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       is_final: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-      speech_data: { type: DataTypes.TEXT, allowNull: false, defaultValue: "[]" },
+      speech_data: { type: DataTypes.TEXT, allowNull: false, defaultValue: '[]' },
     },
-    { tableName: "api_sitting", timestamps: false },
-  );
+    { tableName: 'api_sitting', timestamps: false },
+  )
 }
-
-
