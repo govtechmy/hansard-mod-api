@@ -1,10 +1,10 @@
 import { z } from 'zod'
 
 import { attendanceResponseSchema } from '@/schema/attendance/response.schema'
-import { searchResultsResponseSchema, searchPlotResponseSchema } from '@/schema/search/response.schema'
-import { getSittingResponseSchema, upsertSittingResponseSchema } from '@/schema/sitting/response.schema'
-import { getCatalogueResponseSchema } from '@/schema/catalogue/response.schema'
 import { autocompleteResponseSchema } from '@/schema/autocomplete/response.schema'
+import { getCatalogueResponseSchema } from '@/schema/catalogue/response.schema'
+import { searchPlotResponseSchema, searchResultsResponseSchema } from '@/schema/search/response.schema'
+import { getSittingResponseSchema, upsertSittingResponseSchema } from '@/schema/sitting/response.schema'
 
 export type AttendanceResponse = z.infer<typeof attendanceResponseSchema>
 export type SearchResultsResponse = z.infer<typeof searchResultsResponseSchema>

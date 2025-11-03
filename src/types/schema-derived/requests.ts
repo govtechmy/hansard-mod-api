@@ -1,10 +1,10 @@
 import { z } from 'zod'
 
 import { attendanceQuerySchema } from '@/schema/attendance/request.schema'
-import { searchQuerySchema, searchPlotQuerySchema } from '@/schema/search/request.schema'
 import { autocompleteQuerySchema } from '@/schema/autocomplete/request.schema'
+import { catalogueQuerySchema, createCycleBodySchema } from '@/schema/parliamentary/request.schema'
+import { searchPlotQuerySchema, searchQuerySchema } from '@/schema/search/request.schema'
 import { getSittingQuerySchema, upsertSittingBodySchema } from '@/schema/sitting/request.schema'
-import { createCycleBodySchema, catalogueQuerySchema } from '@/schema/parliamentary/request.schema'
 import { speechBulkBodySchema } from '@/schema/speech/request.schema'
 
 export type AttendanceQuery = z.infer<typeof attendanceQuerySchema>
