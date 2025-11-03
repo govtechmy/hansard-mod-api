@@ -3,7 +3,7 @@
     {
       "environment": [],
       "essential": true,
-      "image": "602670427499.dkr.ecr.ap-southeast-5.amazonaws.com/hansard-mod-api-prod:latest",
+      "image": "602670427499.dkr.ecr.ap-southeast-5.amazonaws.com/hsd-mod-api-prod:latest",
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": { "awslogs-group": "/ecs/hsd-mod-api-prod", "awslogs-region": "ap-southeast-5", "awslogs-stream-prefix": "ecs" }
