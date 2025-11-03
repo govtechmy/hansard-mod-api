@@ -1,7 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { Sequelize } from 'sequelize'
-
-import { env } from '@/config/env.config'
+import { disconnectFromDatabase, getSequelizeClient } from '@/config/db.config'
 import { initAreaModel } from '@/models/area.model'
 import { initAttendanceModel } from '@/models/attendance.model'
 import { initAuthorModel } from '@/models/author.model'
@@ -11,10 +9,7 @@ import { initSittingModel } from '@/models/sitting.model'
 import { initSpeechModel } from '@/models/speech.model'
 
 export async function registerSequelize(app: FastifyInstance) {
-  const sequelize = new Sequelize(env.DATABASE_URL, {
-    dialect: 'postgres',
-    logging: false,
-  })
+  const sequelize = getSequelizeClient()
 
   const Area = initAreaModel(sequelize)
   const ParliamentaryCycle = initParliamentaryCycleModel(sequelize)
@@ -37,6 +32,6 @@ export async function registerSequelize(app: FastifyInstance) {
   app.decorate('models', { Area, ParliamentaryCycle, Sitting, Author, AuthorHistory, Speech, Attendance })
 
   app.addHook('onClose', async () => {
-    await sequelize.close()
+    await disconnectFromDatabase()
   })
 }
