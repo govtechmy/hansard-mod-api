@@ -1,5 +1,5 @@
 import type { LoggerOptions as PinoLoggerOptions, TransportTargetOptions } from "pino";
-import { env } from "./env";
+import { env } from "./env.config";
 
 export function loggerOptions(isProduction: boolean): PinoLoggerOptions {
   const options: PinoLoggerOptions = {

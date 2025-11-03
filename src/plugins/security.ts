@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import fastifyCors from "@fastify/cors";
 import fastifyHelmet from "@fastify/helmet";
-import { env } from "../config/env";
+import { env } from "../config/env.config";
 
 export async function registerSecurityPlugins(app: FastifyInstance, isProduction: boolean): Promise<void> {
   if (isProduction) {

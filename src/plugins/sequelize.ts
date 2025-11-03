@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { Sequelize } from "sequelize";
-import { env } from "@/config/env";
+import { env } from "@/config/env.config";
 import { initAreaModel } from "@/models/area.model";
 import { initParliamentaryCycleModel } from "@/models/parliamentary-cycle.model";
 import { initSittingModel } from "@/models/sitting.model";

@@ -33,7 +33,11 @@
       "@/types/*": ["src/types/*"],
       "@/*": ["src/*"],
       "@schemas": ["src/schemas/index.ts"],
-      "@schemas/*": ["src/schemas/*"]
+      "@schemas/*": ["src/schemas/*"],
+      "@models/*": ["src/models/*"],
+      "@controllers/*": ["src/controllers/*"],
+      "@services/*": ["src/services/*"],
+      "@utils/*": ["src/utils/*"]
     }
   }
 }

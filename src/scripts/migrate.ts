@@ -1,6 +1,6 @@
 import { Umzug, SequelizeStorage } from "umzug";
 import { Sequelize } from "sequelize";
-import { env } from "@/config/env";
+import { env } from "@/config/env.config";
 
 async function getUmzug() {
   const sequelize = new Sequelize(env.DATABASE_URL, { dialect: "postgres", logging: false });
