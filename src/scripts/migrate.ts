@@ -25,10 +25,10 @@ async function run() {
     } else if (cmd === 'down') {
       await umzug.down({ step: 1 })
     } else if (cmd === 'status') {
-      const [executed, pending] = await Promise.all([umzug.executed(), umzug.pending()])
-      console.log({ executed: executed.map(m => m.name), pending: pending.map(m => m.name) })
+      // const [executed, pending] = await Promise.all([umzug.executed(), umzug.pending()])
+      // console.log({ executed: executed.map(m => m.name), pending: pending.map(m => m.name) })
     } else {
-      console.log('Usage: bun src/scripts/migrate.ts <up|down|status>')
+      // console.log('Usage: bun src/scripts/migrate.ts <up|down|status>')
     }
   } finally {
     await sequelize.close()

@@ -10,7 +10,7 @@ import { registerApiRoutes } from './routes/index.route'
 
 async function buildServer(env: config.Env): Promise<FastifyInstance> {
   //build the server
-  const { isProduction, LOG_LEVEL } = config.env
+  const { isProduction, LOG_LEVEL } = env
   const app = Fastify({
     ignoreTrailingSlash: true,
     logger: {
