@@ -93,6 +93,16 @@ export async function getSitting(
     const data = {
       meta: {
         sitting_id: sitting.sitting_id,
+        // Keep cycle_id for backward compatibility, but also include nested cycle object
+        cycle: {
+          cycle_id: sitting.cycle.cycle_id,
+          start_date: sitting.cycle.start_date,
+          end_date: sitting.cycle.end_date,
+          house: sitting.cycle.house,
+          term: sitting.cycle.term,
+          session: sitting.cycle.session,
+          meeting: sitting.cycle.meeting,
+        },
         cycle_id: sitting.cycle_id,
         date: sitting.date,
         filename: sitting.filename,
