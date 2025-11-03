@@ -8,10 +8,41 @@ import { registerErrorHandler } from './middleware/errorHandler'
 import * as plugins from './plugins/index.plugin'
 import { registerApiRoutes } from './routes/index.route'
 
-async function buildServer(): Promise<FastifyInstance> {
+async function buildServer(env: config.Env): Promise<FastifyInstance> {
   //build the server
-  const { isProduction } = config.env
-  const app = Fastify({ ignoreTrailingSlash: true, logger: config.loggerOptions(isProduction) }).withTypeProvider<ZodTypeProvider>()
+  const { isProduction, LOG_LEVEL } = config.env
+  const app = Fastify({ ignoreTrailingSlash: true, 
+    logger: {
+      level: LOG_LEVEL ?? 'info',
+      stream: {
+        write: chunk => {
+          try {
+            const obj = JSON.parse(chunk)
+            if (obj.method === 'GET' && obj.url === '/' && obj.body === '[omitted]') {
+              return // skip logging for health checks
+            }
+
+            const path = obj.method && obj.url ? `${obj.method} ${obj.url}` : undefined
+            const reordered = {
+              msg: obj.msg,
+              path: path,
+              params: obj.params,
+              body: obj.body,
+              reqId: obj.reqId,
+              level: obj.level,
+              time: obj.time,
+              pid: obj.pid,
+              hostname: obj.hostname,
+            }
+            process.stdout.write(`${JSON.stringify(reordered)}\n`)
+          } catch {
+            process.stdout.write(`${chunk}\n`) // fallback
+          }
+        },
+      },
+    },
+
+  }).withTypeProvider<ZodTypeProvider>()
 
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)
@@ -30,7 +61,7 @@ async function start() {
   const portFromEnv = env.PORT
 
   await config.connectToDatabase()
-  const app = await buildServer()
+  const app = await buildServer(env)
 
   // Handle unhandled promise rejections
   process.on('unhandledRejection', (reason, promise) => {
