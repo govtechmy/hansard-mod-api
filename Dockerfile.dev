@@ -57,7 +57,7 @@ USER bunjs
 # Environment variables for production (override with docker run -e)
 ENV PORT=3000 \
     BUN_RUNTIME_TRANSPILER_CACHE_PATH=/tmp/bun-cache \
-    AWS_SECRET_NAME=hansard-mod-api-secret-v-prod
+    AWS_SECRET_NAME=hsd-mod-api-secret-v-dev
 
 # Expose port
 EXPOSE 3000
