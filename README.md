@@ -69,6 +69,9 @@ APP_ENV=development # local | development | test | production
 LOG_LEVEL=debug # fatal | error | warn | info | debug | trace | silent
 PORT=3000
 
+# Simple bearer auth
+API_AUTH_TOKEN=changeme
+
 # Database
 DATABASE_URL=postgres://user:password@localhost:5432/hansard
 
@@ -86,6 +89,7 @@ AWS_SECRET_NAME=hansard-mod-api/config
 | `PORT` | No | `3000` | Fastify listening port |
 | `DATABASE_URL` | Yes | – | PostgreSQL connection string used by Sequelize |
 | `FRONTEND_ORIGIN` | Yes (prod) | – | Allowed CORS origin in production |
+| `API_AUTH_TOKEN` | Yes | – | Static bearer token required in `Authorization: Bearer <token>` for all `/api/*` routes |
 | `AWS_SECRET_NAME` | No | – | AWS Secrets Manager secret resolved at startup |
 
 When `AWS_SECRET_NAME` is supplied, the service tries to hydrate configuration from Secrets Manager first and falls back to process environment variables on failure.

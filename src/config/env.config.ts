@@ -18,7 +18,8 @@ const EnvSchema = z.object({
         .split(',')
         .map(t => t.trim())
         .filter(t => t.length > 0)
-    })
+    }),
+  API_AUTH_TOKEN: z.string().min(1, 'API_AUTH_TOKEN is required'),
 })
 
 function mapSecrets(secrets: Record<string, unknown>) {
@@ -28,6 +29,7 @@ function mapSecrets(secrets: Record<string, unknown>) {
     PORT: secrets.PORT,
     DATABASE_URL: secrets.DATABASE_URL,
     MULTIPLE_ORIGINS: secrets.MULTIPLE_ORIGINS,
+    API_AUTH_TOKEN: secrets.API_AUTH_TOKEN,
   }
 }
 
@@ -65,6 +67,7 @@ async function resolveEnv() {
     PORT: parsed.PORT,
     DATABASE_URL: parsed.DATABASE_URL,
     MULTIPLE_ORIGINS: parsed.MULTIPLE_ORIGINS,
+    API_AUTH_TOKEN: parsed.API_AUTH_TOKEN,
     isProduction,
     logLevel,
   }

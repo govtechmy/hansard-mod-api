@@ -4,6 +4,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 
 import * as config from './config/index.config'
+import { registerAuth } from './middleware/auth.middleware'
 import { registerErrorHandler } from './middleware/errorHandler'
 import * as plugins from './plugins/index.plugin'
 import { registerApiRoutes } from './routes/index.route'
@@ -48,6 +49,9 @@ async function buildServer(env: config.Env): Promise<FastifyInstance> {
   app.setSerializerCompiler(serializerCompiler)
 
   await plugins.registerAllPlugins(app, isProduction)
+  // Simple bearer token auth for all /api/ routes
+  // Enable verbose auth logging when LOG_LEVEL is debug (optional behavior)
+  registerAuth(app, env.API_AUTH_TOKEN)
   registerErrorHandler(app)
   await app.register(registerApiRoutes, { prefix: '/api' })
   return app
