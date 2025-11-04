@@ -1,5 +1,5 @@
 {
-  "name": "sekolahku-mod-api",
+  "name": "hansard-mod-api",
   "module": "src/server.ts",
   "type": "module",
   "private": true,
@@ -27,7 +27,7 @@
     "start": "bun src/server.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint:fix": "eslint . --ext .ts --fix",
     "migrate:up": "bun src/scripts/migrate.ts up",
     "migrate:down": "bun src/scripts/migrate.ts down",
     "migrate:status": "bun src/scripts/migrate.ts status"

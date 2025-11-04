@@ -32,7 +32,7 @@ export async function getSitting(request: FastifyRequest<{ Querystring: GetSitti
   try {
     const { Sitting, ParliamentaryCycle } = request.server.models
     const houseType = request.query.house as House | undefined
-    const house = houseType != null ? HOUSE_TO_CODE[houseType] : null
+    const house = houseType != null ? HOUSE_TO_CODE[`${houseType}`] : null
     if (houseType == null || house == null) {
       return reply.code(400).type('text/plain').send('House type not valid.')
     }
@@ -95,7 +95,7 @@ export async function upsertSitting(request: FastifyRequest<{ Body: UpsertSittin
 
     // Check existing by filename
     const { filename, house: houseType, date: dateStr } = request.body
-    const house = HOUSE_TO_CODE[houseType]
+    const house = HOUSE_TO_CODE[`${houseType}`]
     if (house == null) {
       return reply.code(400).send({ error: 'House type not valid.' })
     }

@@ -67,7 +67,7 @@ export async function buildCycleMap(models: AppModels, baseWhere: CycleFilter, i
       start_date: term.start_date,
       end_date: term.end_date,
     } as TermNode
-    cycleMap[termId] = termNode
+    cycleMap[`${termId}`] = termNode
 
     const sessionRows = (await ParliamentaryCycle.findAll({
       where: { ...baseWhere, term: termId },
@@ -83,7 +83,7 @@ export async function buildCycleMap(models: AppModels, baseWhere: CycleFilter, i
         start_date: session.start_date,
         end_date: session.end_date,
       } as SessionNode
-      termNode[sessionId] = sessionNode
+      termNode[`${sessionId}`] = sessionNode
 
       const meetingRows = (await ParliamentaryCycle.findAll({
         where: { ...baseWhere, term: termId, session: sessionId },
@@ -100,7 +100,7 @@ export async function buildCycleMap(models: AppModels, baseWhere: CycleFilter, i
           end_date: meeting.end_date,
         }
         if (!includeDropdown) meetingNode.sitting_list = []
-        sessionNode[meetingId] = meetingNode
+        sessionNode[`${meetingId}`] = meetingNode
       }
     }
   }
@@ -124,11 +124,11 @@ export async function attachSittings(cycleMap: CycleMap, models: AppModels, sitt
     const meetingId = Number(sitting.cycle.meeting)
     if (Number.isNaN(termId) || Number.isNaN(sessionId) || Number.isNaN(meetingId)) continue
 
-    const termNode = cycleMap[termId]
+    const termNode = cycleMap[`${termId}`]
     if (!termNode) continue
-    const sessionNode = termNode[sessionId]
+    const sessionNode = termNode[`${sessionId}`]
     if (!sessionNode) continue
-    const meetingNode = sessionNode[meetingId]
+    const meetingNode = sessionNode[`${meetingId}`]
     if (!meetingNode) continue
 
     const sittingData: SittingSummary = {

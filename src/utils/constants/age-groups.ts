@@ -13,7 +13,7 @@ export function ageToGroup(age: number | null): string {
     .map(k => Number(k))
     .sort((a, b) => a - b)
   for (const k of keys) {
-    if (age < k) return AGE_GROUPS[k]!
+    if (age < k) return AGE_GROUPS[`${k}`]!
   }
   return AGE_GROUPS[Math.max(...keys)]!
 }

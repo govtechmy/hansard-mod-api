@@ -28,15 +28,15 @@ export function addToHierarchy(levels: (string | null)[], data: SpeechLeaf, resu
   let currentLevel = result
   for (const level of levels) {
     if (!level) continue
-    let branch = currentLevel.find(entry => isBranch(entry) && entry[level] !== undefined) as SpeechHierarchyBranch | undefined
+    let branch = currentLevel.find(entry => isBranch(entry) && entry[`${level}`] !== undefined) as SpeechHierarchyBranch | undefined
     if (!branch) {
       branch = { [level]: [] }
       currentLevel.push(branch)
     }
-    if (!branch[level]) {
-      branch[level] = []
+    if (!branch[`${level}`]) {
+      branch[`${level}`] = []
     }
-    currentLevel = branch[level]!
+    currentLevel = branch[`${level}`]!
   }
   currentLevel.push(data)
 }

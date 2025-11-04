@@ -128,4 +128,36 @@ bun run start
 - **Swagger UI**: `http://localhost:3000/docs`
 - **OpenAPI JSON**: `http://localhost:3000/docs/json`
 
-<SECTION-ROUTES>
+## 📡 API Endpoints
+
+All API endpoints are prefixed with `/api` and require Bearer token authentication.
+
+### System
+- `GET /health` - Health check endpoint
+
+### Parliamentary Cycles
+- `POST /api/parliamentary-cycle` - Create a new parliamentary cycle
+
+### Authors
+- `GET /api/author` - List all authors
+- `GET /api/author-history` - List author history records
+
+### Catalogue
+- `GET /api/catalogue` - List sittings catalogue with filtering options
+
+### Sittings
+- `GET /api/sitting` - Get speeches and metadata for a specific sitting
+- `POST /api/sitting` - Create or update a sitting and its speeches
+
+### Speeches
+- `POST /api/speech` - Bulk create speeches
+
+### Search
+- `GET /api/search` - Live search across speeches
+- `GET /api/search-plot` - Search frequency time series and aggregates
+- `GET /api/autocomplete` - Autocomplete keyword suggestions
+
+### Attendance
+- `GET /api/attendance` - Attendance statistics by term/session/meeting
+
+For detailed request/response schemas and examples, visit the Swagger UI documentation at `http://localhost:3000/docs`.

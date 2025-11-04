@@ -10,7 +10,7 @@ export async function getCatalogue(request: FastifyRequest<{ Querystring: Catalo
     const { ParliamentaryCycle, Sitting } = request.server.models
 
     const houseType = (request.query.house ?? 'dewan-rakyat') as House
-    const house = HOUSE_TO_CODE[houseType] ?? HOUSE_CODE.DEWAN_RAKYAT
+    const house = HOUSE_TO_CODE[`${houseType}`] ?? HOUSE_CODE.DEWAN_RAKYAT
     const isDropdown = request.query.dropdown ?? null
     const termFilter = request.query.term ? Number(request.query.term) : 15
 
