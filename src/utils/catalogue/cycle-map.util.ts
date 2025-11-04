@@ -61,14 +61,18 @@ export async function buildCycleMap(models: AppModels, baseWhere: CycleFilter, i
 
   const cycleMap: CycleMap = {}
   for (const term of termRows) {
-    const termId = Number(term.term)
+    const termId = Number(term.term) // 15
     if (Number.isNaN(termId)) continue
-    const termNode = {
-      start_date: term.start_date,
-      end_date: term.end_date,
-    } as TermNode
-    cycleMap[`${termId}`] = termNode
 
+    const termNode = {
+      start_date: term.start_date, // '2022-12-19'
+      end_date: term.end_date, // '2025-08-28'
+    } as TermNode
+
+    cycleMap[`${termId}`] = termNode
+    // cycleMap['15'] = {start_date: '2022-12-19', end_date: '2025-08-28'}
+
+    // baseWhere = {house: 0}
     const sessionRows = (await ParliamentaryCycle.findAll({
       where: { ...baseWhere, term: termId },
       attributes: ['session', [fn('min', col('start_date')), 'start_date'], [fn('max', col('end_date')), 'end_date']],
@@ -79,6 +83,7 @@ export async function buildCycleMap(models: AppModels, baseWhere: CycleFilter, i
     for (const session of sessionRows) {
       const sessionId = Number(session.session)
       if (Number.isNaN(sessionId)) continue
+
       const sessionNode = {
         start_date: session.start_date,
         end_date: session.end_date,
@@ -104,19 +109,42 @@ export async function buildCycleMap(models: AppModels, baseWhere: CycleFilter, i
       }
     }
   }
+
   return cycleMap
 }
 
 export async function attachSittings(cycleMap: CycleMap, models: AppModels, sittingWhere: SqlBindings, includeDropdown: boolean) {
   if (includeDropdown) return
+
   const { ParliamentaryCycle, Sitting } = models
-  const sittings = (await Sitting.findAll({
-    include: [{ model: ParliamentaryCycle, as: 'cycle', attributes: ['term', 'session', 'meeting'], required: true }],
-    where: sittingWhere,
+
+  // const query = Sitting.findAll({
+  //   include: [{ model: ParliamentaryCycle, as: 'cycle', attributes: ['term', 'session', 'meeting'], required: true }],
+  //   where: sittingWhere,
+  //   order: [['date', 'ASC']],
+  //   raw: true,
+  //   nest: true,
+  //   logging: console.log, // This will log the generated SQL query to the console
+  // })
+
+  const query = Sitting.findAll({
+    attributes: ['sitting_id', 'date', 'filename', 'is_final'], // Only select needed columns
+    include: [
+      {
+        model: ParliamentaryCycle,
+        as: 'cycle',
+        attributes: ['term', 'session', 'meeting'],
+        required: true,
+        where: sittingWhere,
+      },
+    ],
+    where: sittingWhere, // Your existing filters
     order: [['date', 'ASC']],
     raw: true,
     nest: true,
-  })) as unknown as SittingWithCycle[]
+  })
+
+  const sittings = (await query) as unknown as SittingWithCycle[]
 
   for (const sitting of sittings) {
     const termId = Number(sitting.cycle.term)
