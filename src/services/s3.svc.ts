@@ -27,32 +27,18 @@ export class S3Service {
 
   constructor() {
     const env = loadEnv()
-    const region = env.AWS_REGION ?? 'ap-southeast-5'
-    const accessKeyId = env.AWS_ACCESS_KEY_ID ?? ''
-    const secretAccessKey = env.AWS_SECRET_ACCESS_KEY ?? ''
     const bucket = env.AWS_S3_BUCKET ?? ''
 
-    if (!region) {
-      throw new Error('Missing required environment variable: AWS_REGION')
-    }
     if (!bucket) {
       throw new Error('Missing required environment variable: AWS_S3_BUCKET')
     }
 
     this.bucket = bucket
 
-    const s3Config: S3ClientConfig = {
-      region: region,
-    }
+    const s3Config: S3ClientConfig = {}
 
     // For local development, use access keys if provided
     // For AWS environments (ECS Fargate), use IAM role via default credential provider
-    if (accessKeyId && secretAccessKey) {
-      s3Config.credentials = {
-        accessKeyId: accessKeyId,
-        secretAccessKey: secretAccessKey,
-      }
-    }
 
     this.s3Client = new S3Client(s3Config)
   }
