@@ -8,6 +8,8 @@ import {
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
+import { loadEnv } from '../config/env.config'
+
 export interface PutPresignedUrlOptions {
   key: string
   contentType: string
@@ -24,11 +26,11 @@ export class S3Service {
   private bucket: string = ''
 
   constructor() {
-    const { AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_BUCKET } = process.env
-    const region = AWS_REGION ?? 'ap-southeast-5'
-    const accessKeyId = AWS_ACCESS_KEY_ID ?? ''
-    const secretAccessKey = AWS_SECRET_ACCESS_KEY ?? ''
-    const bucket = AWS_S3_BUCKET ?? ''
+    const env = loadEnv()
+    const region = env.AWS_REGION ?? 'ap-southeast-5'
+    const accessKeyId = env.AWS_ACCESS_KEY_ID ?? ''
+    const secretAccessKey = env.AWS_SECRET_ACCESS_KEY ?? ''
+    const bucket = env.AWS_S3_BUCKET ?? ''
 
     if (!region) {
       throw new Error('Missing required environment variable: AWS_REGION')

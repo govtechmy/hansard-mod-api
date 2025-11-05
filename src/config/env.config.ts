@@ -20,6 +20,11 @@ const EnvSchema = z.object({
         .filter(t => t.length > 0)
     }),
   API_AUTH_TOKEN: z.string().min(1, 'API_AUTH_TOKEN is required'),
+  // AWS S3 Configuration
+  AWS_REGION: z.string().min(1, 'AWS_REGION is required'),
+  AWS_S3_BUCKET: z.string().min(1, 'AWS_S3_BUCKET is required'),
+  AWS_ACCESS_KEY_ID: z.string().optional(), // Optional for IAM role environments
+  AWS_SECRET_ACCESS_KEY: z.string().optional(), // Optional for IAM role environments
 })
 
 function mapSecrets(secrets: Record<string, unknown>) {
@@ -30,6 +35,10 @@ function mapSecrets(secrets: Record<string, unknown>) {
     DATABASE_URL: secrets.DATABASE_URL,
     MULTIPLE_ORIGINS: secrets.MULTIPLE_ORIGINS,
     API_AUTH_TOKEN: secrets.API_AUTH_TOKEN,
+    AWS_REGION: secrets.AWS_REGION,
+    AWS_S3_BUCKET: secrets.AWS_S3_BUCKET,
+    AWS_ACCESS_KEY_ID: secrets.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: secrets.AWS_SECRET_ACCESS_KEY,
   }
 }
 
@@ -68,6 +77,10 @@ async function resolveEnv() {
     DATABASE_URL: parsed.DATABASE_URL,
     MULTIPLE_ORIGINS: parsed.MULTIPLE_ORIGINS,
     API_AUTH_TOKEN: parsed.API_AUTH_TOKEN,
+    AWS_REGION: parsed.AWS_REGION,
+    AWS_S3_BUCKET: parsed.AWS_S3_BUCKET,
+    AWS_ACCESS_KEY_ID: parsed.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: parsed.AWS_SECRET_ACCESS_KEY,
     isProduction,
     logLevel,
   }
