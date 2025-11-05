@@ -1,5 +1,5 @@
 import { z } from 'zod'
 
 export const fileDownloadRequestSchema = z.object({
-  url: z.string().min(1, 'URL is required'),
+  key: z.string().min(1, 'File key/path is required'),
 })

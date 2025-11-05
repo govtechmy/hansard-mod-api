@@ -11,12 +11,12 @@ export async function registerFileRoutes(app: FastifyInstance) {
     {
       schema: {
         tags: ['File'],
-        summary: 'Get download link',
+        summary: 'Get download link for S3 file',
         security: [{ bearerAuth: [] }],
         body: fileDownloadRequestSchema,
         response: withStandardErrors({
           200: fileDownloadResponseSchema.describe('Download link retrieved successfully'),
-          404: standardErrorResponseSchema.describe('Link not found'),
+          404: standardErrorResponseSchema.describe('File not found'),
         }),
       },
     },
