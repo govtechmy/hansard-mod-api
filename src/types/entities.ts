@@ -60,6 +60,7 @@ export interface AuthorHistory {
   author_id: number
   party: string | null
   area_id: number | null
+  area_name: string | null
   exec_posts: string | null
   service_posts: string | null
   start_date: string
