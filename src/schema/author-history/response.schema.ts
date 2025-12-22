@@ -5,6 +5,7 @@ export const authorHistoryItemSchema = z.object({
   author_id: z.number(),
   party: z.string().nullable(),
   area_id: z.number().nullable(),
+  area_name: z.string().nullable(),
   exec_posts: z.string().nullable(),
   service_posts: z.string().nullable(),
   start_date: z.string(),
