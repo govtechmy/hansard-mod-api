@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const authorHistoryItemSchema = z.object({
   record_id: z.number(),
   author_id: z.number(),
+  new_author_id: z.number(),
   party: z.string().nullable(),
   area_id: z.number().nullable(),
   area_name: z.string().nullable(),
