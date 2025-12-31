@@ -58,6 +58,7 @@ export interface Author {
 export interface AuthorHistory {
   record_id: number
   author_id: number
+  new_author_id: number
   party: string | null
   area_id: number | null
   area_name: string | null
