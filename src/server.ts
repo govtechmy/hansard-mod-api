@@ -13,7 +13,9 @@ async function buildServer(env: config.Env): Promise<FastifyInstance> {
   //build the server
   const { isProduction, LOG_LEVEL } = env
   const app = Fastify({
-    ignoreTrailingSlash: true,
+    routerOptions: {
+      ignoreTrailingSlash: true,
+    },
     logger: {
       level: LOG_LEVEL ?? 'info',
       stream: {
