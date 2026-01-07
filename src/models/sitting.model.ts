@@ -11,6 +11,7 @@ export function initSittingModel(sequelize: Sequelize) {
       has_dataset: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       is_final: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       speech_data: { type: DataTypes.TEXT, allowNull: false, defaultValue: '[]' },
+      summary_status: {type: DataTypes.STRING, allowNull: false, defaultValue: 'pending'},
     },
     { tableName: 'api_sitting', timestamps: false },
   )
