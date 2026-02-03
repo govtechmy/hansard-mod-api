@@ -45,6 +45,7 @@ export interface Sitting {
   has_dataset: boolean
   is_final: boolean
   speech_data: string
+  summary_status?: string
 }
 
 export interface Author {

@@ -58,6 +58,7 @@ export interface SittingWithCycleRow {
   has_dataset: boolean
   is_final: boolean
   speech_data: string | null
+  summary_status?: string
   cycle: {
     cycle_id: number
     start_date: string

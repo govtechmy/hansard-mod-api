@@ -1,1 +1,12 @@
-GET http://localhost:3000/api/catalogue/
+# @url = https://hansard-api.govtechmy.xyz
+@url = http://localhost:3000
+
+###
+
+GET {{url}}/api/catalogue/
+
+###
+GET {{url}}/api/search?q=minyak
+
+###
+GET {{url}}/api/author
