@@ -12,4 +12,5 @@ export const upsertSittingBodySchema = z.object({
   house: z.enum(HOUSE),
   date: z.string().min(1),
   speech_data: z.string().min(1), // JSON string
+  summary_status: z.string().optional(),
 })
