@@ -6,7 +6,7 @@
 GET {{url}}/api/catalogue/
 
 ###
-GET {{url}}/api/search?q=minyak
+GET {{url}}/api/search/?q=batu+putih&house=dewan-negara&window_size=100&page=1&page_size=10
 
 ###
-GET {{url}}/api/author
+GET {{url}}/api/autocomplete?q=batu+putih

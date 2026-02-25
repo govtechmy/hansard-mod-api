@@ -12,24 +12,27 @@ interface DateRow {
 
 export async function deriveDefaultStartDateDR(models: AppModels): Promise<string> {
   const { ParliamentaryCycle } = models
-  const maxTermRow = (await ParliamentaryCycle.findOne({
-    attributes: [[Sequelize.fn('max', Sequelize.col('term')), 'term']],
+  const minTermRow = (await ParliamentaryCycle.findOne({
+    attributes: [[Sequelize.fn('min', Sequelize.col('term')), 'term']],
     where: { house: 0 },
     raw: true,
   })) as TermRow | null
-  const maxTerm = maxTermRow?.term
-  if (maxTerm == null) {
+
+  const minTerm = minTermRow?.term
+  if (minTerm == null) {
     const minStart = (await ParliamentaryCycle.findOne({
       attributes: [[Sequelize.fn('min', Sequelize.col('start_date')), 'start_date']],
       raw: true,
     })) as DateRow | null
     return minStart?.start_date ?? new Date().toISOString().slice(0, 10)
   }
+
   const termStart = (await ParliamentaryCycle.findOne({
     attributes: [[Sequelize.fn('min', Sequelize.col('start_date')), 'start_date']],
-    where: { house: 0, term: maxTerm },
+    where: { house: 0, term: minTerm },
     raw: true,
   })) as DateRow | null
+
   return termStart?.start_date ?? new Date().toISOString().slice(0, 10)
 }
 
