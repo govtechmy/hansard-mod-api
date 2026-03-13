@@ -10,7 +10,7 @@ export function buildHeadlineFragment(
   return {
     select: `, ts_headline('english', s.speech, plainto_tsquery('english', :q), 'StartSel===, StopSel===, MinWords=${adjustedWindow}, MaxWords=${windowSize}') as headline`,
     rankSelect: ", ts_rank(s.speech_vector, plainto_tsquery('english', :q)) as rank",
-    order: 'rank DESC, si.date DESC',
+    order: 'si.date DESC, rank DESC',
     params: { q: trimmed },
     condition: "s.speech_vector @@ plainto_tsquery('english', :q)",
   }
