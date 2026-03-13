@@ -153,18 +153,27 @@ export async function getSearchPlot(request: FastifyRequest<{ Querystring: Searc
     const whereParts: string[] = ['pc.house = :house', 'si.date >= :startDate', 'si.date <= :endDate']
     const repl: SqlBindings = { house, startDate, endDate }
 
+    let baseFrom = `
+      FROM api_speech s
+      JOIN api_sitting si ON s.sitting_id = si.sitting_id
+      JOIN api_parliamentary_cycle pc ON si.cycle_id = pc.cycle_id
+    `
+
     if (request.query.party) {
       whereParts.push('ah.party = :party')
       repl.party = request.query.party
     }
+
     if (request.query.sex) {
       whereParts.push('a.sex = :sex')
       repl.sex = request.query.sex
     }
+
     if (request.query.ethnicity) {
       whereParts.push('a.ethnicity = :ethnicity')
       repl.ethnicity = request.query.ethnicity
     }
+
     if (request.query.age_group) {
       const grp = request.query.age_group
       const currentYear = new Date().getFullYear()
@@ -174,9 +183,14 @@ export async function getSearchPlot(request: FastifyRequest<{ Querystring: Searc
         Object.assign(repl, trans.params)
       }
     }
+
     if (request.query.uid) {
       whereParts.push('a.new_author_id = :uid')
       repl.uid = Number(request.query.uid)
+      baseFrom += `
+        LEFT JOIN api_author_history ah ON s.speaker_id = ah.record_id
+        LEFT JOIN api_author a ON ah.author_id = a.new_author_id
+      `
     }
 
     if (q) {
@@ -184,11 +198,6 @@ export async function getSearchPlot(request: FastifyRequest<{ Querystring: Searc
       repl.q = q
     }
 
-    const baseFrom = `
-      FROM api_speech s
-      JOIN api_sitting si ON s.sitting_id = si.sitting_id
-      JOIN api_parliamentary_cycle pc ON si.cycle_id = pc.cycle_id
-    `
     const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : ''
 
     const seriesSql = q
@@ -196,16 +205,27 @@ export async function getSearchPlot(request: FastifyRequest<{ Querystring: Searc
       : `SELECT si.date::date as date, sum(s.length) as count ${baseFrom} ${whereSql} GROUP BY si.date ORDER BY si.date`
 
     // Top N speakers
-    const topSql = `
-      SELECT a.new_author_id as author_id, count(*) as count
-      ${baseFrom}
-      LEFT JOIN api_author_history ah ON s.speaker_id = ah.record_id
-      LEFT JOIN api_author a ON ah.author_id = a.new_author_id
-      ${whereSql}
-      GROUP BY a.new_author_id
-      ORDER BY count DESC
-      LIMIT 5
-    `
+    let topSql = `
+        SELECT a.new_author_id as author_id, count(*) as count
+        ${baseFrom}
+        LEFT JOIN api_author_history ah ON s.speaker_id = ah.record_id
+        LEFT JOIN api_author a ON ah.author_id = a.new_author_id
+        ${whereSql}
+        GROUP BY a.new_author_id
+        ORDER BY count DESC
+        LIMIT 5
+      `
+
+    if (request.query.uid) {
+      topSql = `
+        SELECT a.new_author_id as author_id, count(*) as count
+        ${baseFrom}
+        ${whereSql}
+        GROUP BY a.new_author_id
+        ORDER BY count DESC
+        LIMIT 5
+      `
+    }
 
     // Word frequency
     const freqSql = `
