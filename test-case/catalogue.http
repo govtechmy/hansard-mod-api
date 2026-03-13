@@ -5,8 +5,13 @@
 
 GET {{url}}/api/catalogue/
 
-###
-GET {{url}}/api/search/?q=batu+putih&house=dewan-negara&window_size=100&page=1&page_size=10
+
 
 ###
-GET {{url}}/api/autocomplete?q=batu+putih
+GET {{url}}/api/search?q=sekolah&house=dewan-negara&window_size=100&page=1&page_size=10
+
+###
+GET {{url}}/api/search-plot?q=sekolah&house=dewan-negara&window_size=100&page=1&page_size=10
+
+###
+GET {{url}}/api/autocomplete?q=sekolah
