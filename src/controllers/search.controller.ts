@@ -188,44 +188,53 @@ export async function getSearchPlot(request: FastifyRequest<{ Querystring: Searc
       FROM api_speech s
       JOIN api_sitting si ON s.sitting_id = si.sitting_id
       JOIN api_parliamentary_cycle pc ON si.cycle_id = pc.cycle_id
-      LEFT JOIN api_author_history ah ON s.speaker_id = ah.record_id
-      LEFT JOIN api_author a ON ah.author_id = a.new_author_id
     `
     const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : ''
 
     const seriesSql = q
       ? `SELECT si.date::date as date, count(s.speech_id) as count ${baseFrom} ${whereSql} GROUP BY si.date ORDER BY si.date`
       : `SELECT si.date::date as date, sum(s.length) as count ${baseFrom} ${whereSql} GROUP BY si.date ORDER BY si.date`
-    const series = await sequelize.query<SearchSeriesRow>(seriesSql, { replacements: repl, type: QueryTypes.SELECT })
 
     // Top N speakers
     const topSql = `
       SELECT a.new_author_id as author_id, count(*) as count
       ${baseFrom}
+      LEFT JOIN api_author_history ah ON s.speaker_id = ah.record_id
+      LEFT JOIN api_author a ON ah.author_id = a.new_author_id
       ${whereSql}
       GROUP BY a.new_author_id
       ORDER BY count DESC
       LIMIT 5
     `
-    const topRows = await sequelize.query<SearchTopSpeakerRow>(topSql, { replacements: repl, type: QueryTypes.SELECT })
+
+    // Word frequency
+    const freqSql = `
+      SELECT unnest(s.speech_tokens) as word, count(*) as c
+      FROM api_speech s
+      JOIN api_sitting si ON s.sitting_id = si.sitting_id
+      JOIN api_parliamentary_cycle pc ON si.cycle_id = pc.cycle_id
+      ${whereSql}
+      GROUP BY word
+      ORDER BY c DESC
+      LIMIT 20
+    `
+
+    // Run queries in parallel to improve performance
+    const [seriesResult, topRowsResult, freqRowsResult] = await Promise.allSettled([
+      sequelize.query<SearchSeriesRow>(seriesSql, { replacements: repl, type: QueryTypes.SELECT }),
+      sequelize.query<SearchTopSpeakerRow>(topSql, { replacements: repl, type: QueryTypes.SELECT }),
+      sequelize.query<SearchFrequencyRow>(freqSql, { replacements: repl, type: QueryTypes.SELECT }),
+    ])
+
+    const series = seriesResult.status === 'fulfilled' ? seriesResult.value : []
+    const topRows = topRowsResult.status === 'fulfilled' ? topRowsResult.value : []
+    const freqRows = freqRowsResult.status === 'fulfilled' ? freqRowsResult.value : []
+
     const top_speakers = topRows.map(row => {
       const key = row.author_id != null ? String(row.author_id) : 'unknown'
       return { [key]: Number(row.count ?? 0) }
     })
 
-    // Word frequency
-    const freqSql = `
-      SELECT t.word, count(*) as c
-      FROM (
-        SELECT unnest(s.speech_tokens) as word
-        ${baseFrom}
-        ${whereSql}
-      ) as t
-      GROUP BY t.word
-      ORDER BY c DESC
-      LIMIT 20
-    `
-    const freqRows = await sequelize.query<SearchFrequencyRow>(freqSql, { replacements: repl, type: QueryTypes.SELECT })
     const top_word_freq: Record<string, number> = {}
     for (const r of freqRows) top_word_freq[r.word] = Number(r.c)
 
