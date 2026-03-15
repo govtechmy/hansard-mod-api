@@ -33,3 +33,18 @@ export const upsertSittingResponseSchema = z.union([
   sittingMetaSchema,
   z.object({ sitting: sittingMetaSchema, warning: z.string().optional(), speech_errors: z.any().optional() }),
 ])
+
+export const getSittingListResponseSchema = z.array(
+  z.object({
+    term: z.number(),
+    start_date: z.string().optional(),
+    end_date: z.string().optional(),
+    sessions: z.array(
+      z.object({
+        session: z.number(),
+        start_date: z.string().optional(),
+        end_date: z.string().optional(),
+      }),
+    ),
+  }),
+)

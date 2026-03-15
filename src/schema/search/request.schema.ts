@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { HOUSE } from '@/types/enum'
 
 export const searchQuerySchema = z.object({
-  house: z.enum(HOUSE).optional(),
+  house: z.union([z.enum(HOUSE), z.array(z.enum(HOUSE))]).optional(),
   start_date: z.string().optional(),
   end_date: z.string().optional(),
   window_size: z.coerce.number().optional(),

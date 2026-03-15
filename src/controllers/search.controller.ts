@@ -1,34 +1,36 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { QueryTypes } from 'sequelize'
 
-import type {
-  SearchCountRow,
-  SearchFrequencyRow,
-  SearchPlotResponse,
-  SearchQuery,
-  SearchResultsResponse,
-  SearchSeriesRow,
-  SearchSpeechRow,
-  SearchTopSpeakerRow,
-  SqlBindings,
-} from '@/types'
-import { type House, HOUSE_TO_CODE } from '@/types/enum'
-import { buildHeadlineFragment, deriveDefaultStartDateDR, paginate, resampleSeries, translateAgeGroupToBirthYearBounds } from '@/utils'
-
-// Using centralized inferred SearchQuery type
+import { SearchService } from '@/services/search.svc'
+import type { SearchQuery, SearchResultsResponse } from '@/types'
+import { type House, HOUSE_CODE, HOUSE_TO_CODE } from '@/types/enum'
+import { deriveDefaultStartDateDR } from '@/utils'
 
 const DEFAULT_PAGE_SIZE = 9
 
 function buildFilterClauses(server: Pick<FastifyInstance, 'models'>, query: SearchQuery) {
-  const house = HOUSE_TO_CODE[(query.house ?? 'dewan-rakyat') as House] ?? 0
+  let houses = [] as number[]
+  if (query.house) {
+    if (Array.isArray(query.house)) {
+      houses = query.house.map(h => HOUSE_TO_CODE[`${h}` as House]).filter((code): code is number => code != null)
+    } else {
+      const houseCode = HOUSE_TO_CODE[`${query.house}` as House]
+      if (houseCode == null) {
+        houses = [HOUSE_CODE.DEWAN_NEGARA, HOUSE_CODE.DEWAN_RAKYAT, HOUSE_CODE.KAMAR_KHAS] // default to all houses if invalid
+      } else {
+        houses = [houseCode]
+      }
+    }
+  }
+
   const startDatePromise = query.start_date ? Promise.resolve(query.start_date) : deriveDefaultStartDateDR(server.models)
-  return { house, startDatePromise }
+  return { houses, startDatePromise }
 }
 
 export async function getSearchResults(request: FastifyRequest<{ Querystring: SearchQuery }>, reply: FastifyReply) {
   try {
     const { sequelize } = request.server
-    const { house, startDatePromise } = buildFilterClauses(request.server, request.query)
+
+    const { houses, startDatePromise } = buildFilterClauses(request.server, request.query)
     const startDate = await startDatePromise
     const endDate = request.query.end_date ?? new Date().toISOString().slice(0, 10)
     const windowSize = Number(request.query.window_size ?? 120)
@@ -37,103 +39,31 @@ export async function getSearchResults(request: FastifyRequest<{ Querystring: Se
     const pageSize = Number(request.query.page_size ?? DEFAULT_PAGE_SIZE)
     const pageInput = Math.max(1, Number(request.query.page ?? 1))
 
-    const whereParts: string[] = ['pc.house = :house', 'si.date >= :startDate', 'si.date <= :endDate']
-    const repl: SqlBindings = { house, startDate, endDate }
-
-    if (request.query.party) {
-      whereParts.push('ah.party = :party')
-      repl.party = request.query.party
-    }
-    if (request.query.sex) {
-      whereParts.push('a.sex = :sex')
-      repl.sex = request.query.sex
-    }
-    if (request.query.ethnicity) {
-      whereParts.push('a.ethnicity = :ethnicity')
-      repl.ethnicity = request.query.ethnicity
-    }
-    if (request.query.age_group) {
-      const grp = request.query.age_group
-      const currentYear = new Date().getFullYear()
-      const trans = translateAgeGroupToBirthYearBounds(grp, currentYear)
-      if (trans) {
-        whereParts.push(trans.clause)
-        Object.assign(repl, trans.params)
-      }
-    }
-    if (uid) {
-      whereParts.push('a.new_author_id = :uid')
-      repl.uid = uid
-    }
-
-    let selectHeadline = ''
-    let selectRank = '0 as rank'
-    let orderBy = 'si.date DESC'
-    const headlineFragment = q ? buildHeadlineFragment(q, windowSize) : null
-    if (headlineFragment) {
-      selectHeadline = headlineFragment.select
-      selectRank = headlineFragment.rankSelect
-      orderBy = headlineFragment.order
-      repl.q = q
-      whereParts.push(headlineFragment.condition)
-    }
-
-    const baseFrom = `
-      FROM api_speech s
-      JOIN api_sitting si ON s.sitting_id = si.sitting_id
-      JOIN api_parliamentary_cycle pc ON si.cycle_id = pc.cycle_id
-      LEFT JOIN api_author_history ah ON s.speaker_id = ah.record_id
-      LEFT JOIN api_author a ON ah.author_id = a.new_author_id
-    `
-
-    const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : ''
-
-    const countSql = `SELECT count(*) as count ${baseFrom} ${whereSql}`
-    const countRows = await sequelize.query<SearchCountRow>(countSql, { replacements: repl, type: QueryTypes.SELECT })
-
-    const total = Number(countRows[0]?.count ?? 0)
-    if (total === 0) {
-      return reply.code(404).type('text/plain').send('No speeches found with the given query.')
-    }
-    const {
-      // page,
-      // totalPages,
-      offset,
-      next,
-      previous,
-    } = paginate(total, pageInput, pageSize)
-
-    const selectSql = `
-      SELECT s.index, a.name as speaker_name, a.new_author_id as author_id, s.speech, s.timestamp,
-             si.date as sitting_date, pc.term, pc.session, pc.meeting
-             ${selectHeadline} ${selectRank}
-      ${baseFrom}
-      ${whereSql}
-      ORDER BY ${orderBy}
-      LIMIT :limit OFFSET :offset
-    `
-    const selectReplacements: SqlBindings = { ...repl, limit: pageSize, offset }
-    const rows = await sequelize.query<SearchSpeechRow>(selectSql, {
-      replacements: selectReplacements,
-      type: QueryTypes.SELECT,
+    const searchSvc = new SearchService()
+    const serviceResponse = await searchSvc.search(sequelize, request.query, {
+      startDate,
+      endDate,
+      houses,
+      windowSize,
+      q,
+      uid,
+      pageSize,
+      pageInput,
     })
 
-    const results: SearchResultsResponse['results'] = rows
-      .filter(r => r.speech != null || r.headline != null)
-      .map(r => ({
-        index: Number(r.index),
-        speaker: r.speaker_name,
-        author_id: r.author_id != null ? Number(r.author_id) : null,
-        trimmed_speech: q ? (r.headline ?? '') : `${(r.speech ?? '').slice(0, windowSize)}...`,
-        relevance_score: q ? (r.rank != null ? Number(r.rank) : null) : null,
-        sitting: {
-          date: r.sitting_date,
-          term: Number(r.term ?? 0),
-          session: Number(r.session ?? 0),
-          meeting: Number(r.meeting ?? 0),
-        },
-      }))
+    if (serviceResponse.error || !serviceResponse.success) {
+      const { code, type, message } = serviceResponse.error ?? {
+        code: 500,
+        type: 'text/plain',
+        message: 'Internal Server Error',
+      }
+      return reply.code(code).type(type).send(message)
+    }
 
+    const results = serviceResponse.success.results
+    const total = serviceResponse.success.count
+    const next = serviceResponse.success.next
+    const previous = serviceResponse.success.previous
     const response: SearchResultsResponse = { results, count: total, next, previous }
     return reply.send(response)
   } catch (err: unknown) {
@@ -145,131 +75,27 @@ export async function getSearchResults(request: FastifyRequest<{ Querystring: Se
 export async function getSearchPlot(request: FastifyRequest<{ Querystring: SearchQuery }>, reply: FastifyReply) {
   try {
     const { sequelize } = request.server
-    const { house, startDatePromise } = buildFilterClauses(request.server, request.query)
+    const { houses, startDatePromise } = buildFilterClauses(request.server, request.query)
     const startDate = await startDatePromise
     const endDate = request.query.end_date ?? new Date().toISOString().slice(0, 10)
     const q = (request.query.q ?? '').toString().trim().toLowerCase()
+    const uid = request.query.uid ? Number(request.query.uid) : undefined
 
-    const whereParts: string[] = ['pc.house = :house', 'si.date >= :startDate', 'si.date <= :endDate']
-    const repl: SqlBindings = { house, startDate, endDate }
-
-    let baseFrom = `
-      FROM api_speech s
-      JOIN api_sitting si ON s.sitting_id = si.sitting_id
-      JOIN api_parliamentary_cycle pc ON si.cycle_id = pc.cycle_id
-    `
-
-    if (request.query.party) {
-      whereParts.push('ah.party = :party')
-      repl.party = request.query.party
-    }
-
-    if (request.query.sex) {
-      whereParts.push('a.sex = :sex')
-      repl.sex = request.query.sex
-    }
-
-    if (request.query.ethnicity) {
-      whereParts.push('a.ethnicity = :ethnicity')
-      repl.ethnicity = request.query.ethnicity
-    }
-
-    if (request.query.age_group) {
-      const grp = request.query.age_group
-      const currentYear = new Date().getFullYear()
-      const trans = translateAgeGroupToBirthYearBounds(grp, currentYear)
-      if (trans) {
-        whereParts.push(trans.clause)
-        Object.assign(repl, trans.params)
-      }
-    }
-
-    if (request.query.uid) {
-      whereParts.push('a.new_author_id = :uid')
-      repl.uid = Number(request.query.uid)
-      baseFrom += `
-        LEFT JOIN api_author_history ah ON s.speaker_id = ah.record_id
-        LEFT JOIN api_author a ON ah.author_id = a.new_author_id
-      `
-    }
-
-    if (q) {
-      whereParts.push("s.speech_vector @@ plainto_tsquery('english', :q)")
-      repl.q = q
-    }
-
-    const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : ''
-
-    const seriesSql = q
-      ? `SELECT si.date::date as date, count(s.speech_id) as count ${baseFrom} ${whereSql} GROUP BY si.date ORDER BY si.date`
-      : `SELECT si.date::date as date, sum(s.length) as count ${baseFrom} ${whereSql} GROUP BY si.date ORDER BY si.date`
-
-    // Top N speakers
-    let topSql = `
-        SELECT a.new_author_id as author_id, count(*) as count
-        ${baseFrom}
-        LEFT JOIN api_author_history ah ON s.speaker_id = ah.record_id
-        LEFT JOIN api_author a ON ah.author_id = a.new_author_id
-        ${whereSql}
-        GROUP BY a.new_author_id
-        ORDER BY count DESC
-        LIMIT 5
-      `
-
-    if (request.query.uid) {
-      topSql = `
-        SELECT a.new_author_id as author_id, count(*) as count
-        ${baseFrom}
-        ${whereSql}
-        GROUP BY a.new_author_id
-        ORDER BY count DESC
-        LIMIT 5
-      `
-    }
-
-    // Word frequency
-    const freqSql = `
-      SELECT unnest(s.speech_tokens) as word, count(*) as c
-      FROM api_speech s
-      JOIN api_sitting si ON s.sitting_id = si.sitting_id
-      JOIN api_parliamentary_cycle pc ON si.cycle_id = pc.cycle_id
-      ${whereSql}
-      GROUP BY word
-      ORDER BY c DESC
-      LIMIT 20
-    `
-
-    // Run queries in parallel to improve performance
-    const [seriesResult, topRowsResult, freqRowsResult] = await Promise.allSettled([
-      sequelize.query<SearchSeriesRow>(seriesSql, { replacements: repl, type: QueryTypes.SELECT }),
-      sequelize.query<SearchTopSpeakerRow>(topSql, { replacements: repl, type: QueryTypes.SELECT }),
-      sequelize.query<SearchFrequencyRow>(freqSql, { replacements: repl, type: QueryTypes.SELECT }),
-    ])
-
-    const series = seriesResult.status === 'fulfilled' ? seriesResult.value : []
-    const topRows = topRowsResult.status === 'fulfilled' ? topRowsResult.value : []
-    const freqRows = freqRowsResult.status === 'fulfilled' ? freqRowsResult.value : []
-
-    const top_speakers = topRows.map(row => {
-      const key = row.author_id != null ? String(row.author_id) : 'unknown'
-      return { [key]: Number(row.count ?? 0) }
-    })
-
-    const top_word_freq: Record<string, number> = {}
-    for (const r of freqRows) top_word_freq[r.word] = Number(r.c)
-
-    if (!series.length) {
-      return reply.code(404).type('text/plain').send('No speeches found with the given filters.')
-    }
-
-    const chart_data = resampleSeries(
-      series.map(r => ({ date: r.date, count: Number(r.count) })),
+    const searchSvc = new SearchService()
+    const serviceResponse = await searchSvc.searchPlot(sequelize, request.query, {
       startDate,
       endDate,
-    )
+      houses,
+      q,
+      uid,
+    })
 
-    const total_results = chart_data.freq.reduce((a, b) => a + b, 0)
-    const plotResponse: SearchPlotResponse = { chart_data, total_results, top_word_freq, top_speakers }
+    if (serviceResponse.error) {
+      const { code, type, message } = serviceResponse.error
+      return reply.code(code).type(type).send(message)
+    }
+
+    const plotResponse = serviceResponse.success
     return reply.send(plotResponse)
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Bad Request'

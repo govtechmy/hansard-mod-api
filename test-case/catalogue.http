@@ -5,16 +5,26 @@
 
 GET {{url}}/api/catalogue/
 
+### Search Dewan Rakyat for "sekolah" by author with uid 4266
+GET {{url}}/api/search?q=sekolah&uid=4266&house=dewan-rakyat&window_size=100&page=1&page_size=10
 
+### Search all houses for "sekolah"
+GET {{url}}/api/search?q=sekolah&house=dewan-rakyat&house=dewan-negara&house=kamar-khas&window_size=100&page=1&page_size=10
 
-###
-GET {{url}}/api/search?q=sekolah&house=dewan-negara&window_size=100&page=1&page_size=10
+### Search all houses for uid 4266
+GET {{url}}/api/search?uid=4266&house=dewan-rakyat&house=dewan-negara&house=kamar-khas&window_size=100&page=1&page_size=10
 
-###
-GET {{url}}/api/search-plot?q=sekolah&house=dewan-negara&window_size=100&page=1&page_size=10
+### Search plot all houses for "sekolah"
+GET {{url}}/api/search-plot?q=sekolah&house=dewan-rakyat&house=dewan-negara&house=kamar-khas&window_size=100&page=1&page_size=10
 
-###
+### Search plot Dewan Rakyat for "sekolah" by author with uid 4266 between 2007-01-01 and 2024-06-30
 GET {{url}}/api/search-plot?house=dewan-rakyat&page=1&page_size=10&uid=4266&start_date=2007-01-01&end_date=2024-06-30
 
-###
+### Autocomplete search for "sekolah"
 GET {{url}}/api/autocomplete?q=sekolah
+
+### Sitting list for all houses
+GET {{url}}/api/sitting/list?house=dewan-rakyat&house=dewan-negara&house=kamar-khas
+
+### Sitting list for kamar khas
+GET {{url}}/api/sitting/list?house=kamar-khas

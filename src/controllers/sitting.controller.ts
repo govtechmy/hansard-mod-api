@@ -3,6 +3,7 @@ import { Op } from 'sequelize'
 
 import type {
   AuthorHistory as AuthorHistoryEntity,
+  GetSittingListQuery,
   GetSittingQuery,
   GetSittingResponse,
   ParliamentaryCycleRow,
@@ -24,9 +25,93 @@ function parseSpeechData(payload: string | null | undefined): RawSpeechRow[] | n
   }
 }
 
-// Using centralized inferred types
+export async function getSittingList(request: FastifyRequest<{ Querystring: GetSittingListQuery }>, reply: FastifyReply) {
+  try {
+    const { ParliamentaryCycle } = request.server.models
 
-// Nested speech helpers refactored into utils (buildNestedSpeeches)
+    let houses = [] as number[]
+    if (request.query.house) {
+      if (Array.isArray(request.query.house)) {
+        houses = request.query.house.map(h => HOUSE_TO_CODE[`${h}` as House]).filter((code): code is number => code != null)
+      } else {
+        const houseCode = HOUSE_TO_CODE[`${request.query.house}` as House]
+        if (houseCode == null) {
+          return reply.code(400).type('text/plain').send('Invalid house type provided.')
+        }
+        houses = [houseCode]
+      }
+    }
+
+    const whereClause = houses ? { house: { [Op.in]: houses } } : undefined
+
+    const parliamentaryCycles = (await ParliamentaryCycle.findAll({
+      attributes: ['cycle_id', 'start_date', 'end_date', 'house', 'term', 'session', 'meeting'],
+      raw: true,
+      where: whereClause,
+      order: [
+        ['start_date', 'ASC'],
+        ['term', 'ASC'],
+        ['session', 'ASC'],
+        ['meeting', 'ASC'],
+      ],
+    })) as unknown as ParliamentaryCycleRow[]
+
+    const takwim = [] as {
+      term: number
+      start_date?: string
+      end_date?: string
+      sessions: {
+        session: number
+        start_date?: string
+        end_date?: string | null
+      }[]
+    }[]
+
+    // fill up the array first, then find the start date and end date for term, sessions and meetings
+    for (const cycle of parliamentaryCycles) {
+      let termObj = takwim.find(t => t.term === cycle.term)
+      if (!termObj) {
+        termObj = { term: cycle.term, sessions: [] }
+        takwim.push(termObj)
+      }
+
+      let sessionObj = termObj.sessions.find(s => s.session === cycle.session)
+      if (!sessionObj) {
+        sessionObj = { session: cycle.session }
+        termObj.sessions.push(sessionObj)
+      }
+
+      sessionObj.start_date = sessionObj.start_date
+        ? sessionObj.start_date < cycle.start_date
+          ? sessionObj.start_date
+          : cycle.start_date
+        : cycle.start_date
+
+      if (cycle.end_date) {
+        sessionObj.end_date = sessionObj.end_date
+          ? sessionObj.end_date > cycle.end_date
+            ? sessionObj.end_date
+            : cycle.end_date
+          : cycle.end_date
+      }
+
+      termObj.start_date = termObj.start_date
+        ? termObj.start_date < cycle.start_date
+          ? termObj.start_date
+          : cycle.start_date
+        : cycle.start_date
+
+      if (cycle.end_date) {
+        termObj.end_date = termObj.end_date ? (termObj.end_date > cycle.end_date ? termObj.end_date : cycle.end_date) : cycle.end_date
+      }
+    }
+
+    return reply.send(takwim)
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Bad Request'
+    return reply.code(400).send({ error: message })
+  }
+}
 
 export async function getSitting(request: FastifyRequest<{ Querystring: GetSittingQuery }>, reply: FastifyReply) {
   try {
