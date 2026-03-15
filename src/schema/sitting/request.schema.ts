@@ -14,3 +14,7 @@ export const upsertSittingBodySchema = z.object({
   speech_data: z.string().min(1), // JSON string
   summary_status: z.string().optional(),
 })
+
+export const getSittingListQuerySchema = z.object({
+  house: z.union([z.enum(HOUSE), z.array(z.enum(HOUSE))]).optional(),
+})

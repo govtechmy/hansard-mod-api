@@ -28,6 +28,7 @@ export interface SearchSpeechRow {
   speech: string | null
   timestamp: string
   sitting_date: string
+  house: number | null
   term: number | string | null
   session: number | string | null
   meeting: number | string | null

@@ -6,6 +6,7 @@ export const searchResultItemSchema = z.object({
   author_id: z.number().nullable().optional(),
   trimmed_speech: z.string(),
   relevance_score: z.number().nullable().optional(),
+  house: z.number().nullable().optional(),
   sitting: z.object({
     date: z.string(),
     term: z.number(),

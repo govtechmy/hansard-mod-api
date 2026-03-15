@@ -1,9 +1,29 @@
 import type { FastifyInstance } from 'fastify'
 
-import { getSitting, upsertSitting } from '@/controllers/sitting.controller'
-import { getSittingQuerySchema, getSittingResponseSchema, upsertSittingBodySchema, upsertSittingResponseSchema } from '@/schema'
+import { getSitting, getSittingList, upsertSitting } from '@/controllers/sitting.controller'
+import {
+  getSittingListQuerySchema,
+  getSittingListResponseSchema,
+  getSittingQuerySchema,
+  getSittingResponseSchema,
+  upsertSittingBodySchema,
+  upsertSittingResponseSchema,
+} from '@/schema'
 
 export async function registerSittingRoutes(app: FastifyInstance) {
+  app.get(
+    '/sitting/list',
+    {
+      schema: {
+        tags: ['Sitting'],
+        summary: 'Get speeches and metadata for a list of sittings',
+        querystring: getSittingListQuerySchema,
+        response: { 200: getSittingListResponseSchema },
+      },
+    },
+    getSittingList,
+  )
+
   app.get(
     '/sitting',
     {

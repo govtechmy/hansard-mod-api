@@ -1,39 +1,13 @@
-import { Sequelize } from 'sequelize'
-
 import type { AppModels } from '@/types/fastify-sequelize'
-
-interface TermRow {
-  term: number | null
-}
-
-interface DateRow {
-  start_date: string | null
-}
 
 export async function deriveDefaultStartDateDR(models: AppModels): Promise<string> {
   const { ParliamentaryCycle } = models
-  const minTermRow = (await ParliamentaryCycle.findOne({
-    attributes: [[Sequelize.fn('min', Sequelize.col('term')), 'term']],
-    where: { house: 0 },
-    raw: true,
-  })) as TermRow | null
 
-  const minTerm = minTermRow?.term
-  if (minTerm == null) {
-    const minStart = (await ParliamentaryCycle.findOne({
-      attributes: [[Sequelize.fn('min', Sequelize.col('start_date')), 'start_date']],
-      raw: true,
-    })) as DateRow | null
-    return minStart?.start_date ?? new Date().toISOString().slice(0, 10)
-  }
+  // Get the minimum term for Dewan Rakyat (house 0)
+  const minStart = (await ParliamentaryCycle.min('start_date')) as string | null
 
-  const termStart = (await ParliamentaryCycle.findOne({
-    attributes: [[Sequelize.fn('min', Sequelize.col('start_date')), 'start_date']],
-    where: { house: 0, term: minTerm },
-    raw: true,
-  })) as DateRow | null
-
-  return termStart?.start_date ?? new Date().toISOString().slice(0, 10)
+  // Return the found date or today's date as default
+  return minStart ?? new Date().toISOString().slice(0, 10)
 }
 
 export function isMonthlyResample(start: string, end: string): boolean {
