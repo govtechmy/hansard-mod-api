@@ -20,7 +20,7 @@ export const searchMPDocResultItemSchema = z.object({
   term: z.number(),
   session: z.number(),
   meeting: z.number(),
-  house: z.number(),
+  house: z.number().nullable().optional(),
 })
 
 // Raw payload for GET /search
