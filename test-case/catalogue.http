@@ -14,6 +14,14 @@ GET {{url}}/api/search?q=sekolah&house=dewan-rakyat&house=dewan-negara&house=kam
 ### Search all houses for uid 4266
 GET {{url}}/api/search?uid=4266&house=dewan-rakyat&house=dewan-negara&house=kamar-khas&window_size=100&page=1&page_size=10
 
+
+### Search all houses for uid 4266
+GET {{url}}/api/search?uid=4266&house=dewan-rakyat&house=dewan-negara&house=kamar-khas&window_size=100&page=1&page_size=10
+
+### Search all houses for uid 4266
+GET {{url}}/api/search-mp-doc?uid=4266&house=dewan-rakyat&house=dewan-negara&house=kamar-khas&window_size=100&page=1&page_size=10
+
+
 ### Search plot all houses for "sekolah"
 GET {{url}}/api/search-plot?q=sekolah&house=dewan-rakyat&house=dewan-negara&house=kamar-khas&window_size=100&page=1&page_size=10
 

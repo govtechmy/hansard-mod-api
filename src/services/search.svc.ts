@@ -3,6 +3,7 @@ import { QueryTypes, type Sequelize } from 'sequelize'
 import type {
   SearchCountRow,
   SearchFrequencyRow,
+  SearchMPDocResultsResponse,
   SearchPlotResponse,
   SearchQuery,
   SearchResultsResponse,
@@ -15,6 +16,15 @@ import { buildHeadlineFragment, paginate, resampleSeries, translateAgeGroupToBir
 
 export interface SearchServiceResponse {
   success?: SearchResultsResponse
+  error?: {
+    code: number
+    type: string
+    message: string
+  }
+}
+
+export interface SearchMPDocServiceResponse {
+  success?: SearchMPDocResultsResponse
   error?: {
     code: number
     type: string
@@ -133,7 +143,6 @@ export class SearchService {
         type: 'text/plain',
         message: 'No speeches found with the given query.',
       }
-      // return reply.code(404).type('text/plain').send('No speeches found with the given query.')
       return response
     }
 
@@ -170,6 +179,109 @@ export class SearchService {
           meeting: Number(r.meeting ?? 0),
         },
       }))
+
+    response.success = { count: total, next, previous, results }
+    return response
+  }
+
+  public async searchMPDoc(
+    sequelize: Sequelize,
+    query: SearchQuery,
+    parameters: {
+      startDate: string
+      endDate: string
+      houses: number[]
+      q: string
+      uid?: number
+      pageSize: number
+      pageInput: number
+    },
+  ): Promise<SearchMPDocServiceResponse> {
+    const response = {} as SearchMPDocServiceResponse
+
+    const whereParts: string[] = ['pc.house IN (:houses)', 'si.date >= :startDate', 'si.date <= :endDate']
+    const repl: SqlBindings = {
+      houses: parameters.houses,
+      startDate: parameters.startDate,
+      endDate: parameters.endDate,
+    }
+
+    if (query.party) {
+      whereParts.push('ah.party = :party')
+      repl.party = query.party
+    }
+
+    if (query.sex) {
+      whereParts.push('a.sex = :sex')
+      repl.sex = query.sex
+    }
+
+    if (query.ethnicity) {
+      whereParts.push('a.ethnicity = :ethnicity')
+      repl.ethnicity = query.ethnicity
+    }
+
+    if (query.age_group) {
+      const grp = query.age_group
+      const currentYear = new Date().getFullYear()
+      const trans = translateAgeGroupToBirthYearBounds(grp, currentYear)
+      if (trans) {
+        whereParts.push(trans.clause)
+        Object.assign(repl, trans.params)
+      }
+    }
+
+    if (parameters.uid) {
+      whereParts.push('a.new_author_id = :uid')
+      repl.uid = parameters.uid
+    }
+
+    const orderBy = 'si.date DESC'
+
+    const baseFrom = `
+      FROM api_speech s
+      JOIN api_sitting si ON s.sitting_id = si.sitting_id
+      JOIN api_parliamentary_cycle pc ON si.cycle_id = pc.cycle_id
+      LEFT JOIN api_author_history ah ON s.speaker_id = ah.record_id
+      LEFT JOIN api_author a ON ah.author_id = a.new_author_id
+    `
+
+    const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : ''
+    const countSql = `SELECT count(*) as count ${baseFrom} ${whereSql}`
+    const countRows = await sequelize.query<SearchCountRow>(countSql, { replacements: repl, type: QueryTypes.SELECT })
+    const total = Number(countRows[0]?.count ?? 0)
+
+    if (total === 0) {
+      response.error = {
+        code: 404,
+        type: 'text/plain',
+        message: 'No speeches found with the given query.',
+      }
+      return response
+    }
+
+    const { offset, next, previous } = paginate(total, parameters.pageInput, parameters.pageSize)
+    const selectSql = `
+      SELECT DISTINCT  si.date as sitting_date, pc.term, pc.session, pc.meeting,  pc.house
+      ${baseFrom}
+      ${whereSql}
+      ORDER BY ${orderBy}
+      LIMIT :limit OFFSET :offset
+    `
+
+    const selectReplacements: SqlBindings = { ...repl, limit: parameters.pageSize, offset }
+    const rows = await sequelize.query<SearchSpeechRow>(selectSql, {
+      replacements: selectReplacements,
+      type: QueryTypes.SELECT,
+    })
+
+    const results: SearchMPDocResultsResponse['results'] = rows.map(r => ({
+      date: r.sitting_date,
+      term: Number(r.term ?? 0),
+      session: Number(r.session ?? 0),
+      meeting: Number(r.meeting ?? 0),
+      house: r.house,
+    }))
 
     response.success = { count: total, next, previous, results }
     return response

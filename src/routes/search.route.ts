@@ -1,7 +1,13 @@
 import type { FastifyInstance } from 'fastify'
 
-import { getSearchPlot, getSearchResults } from '@/controllers/search.controller'
-import { searchPlotQuerySchema, searchPlotResponseSchema, searchQuerySchema, searchResultsResponseSchema } from '@/schema'
+import { getSearchMPDocResults, getSearchPlot, getSearchResults } from '@/controllers/search.controller'
+import {
+  searchMPDocResultsResponseSchema,
+  searchPlotQuerySchema,
+  searchPlotResponseSchema,
+  searchQuerySchema,
+  searchResultsResponseSchema,
+} from '@/schema'
 
 export async function registerSearchRoutes(app: FastifyInstance) {
   app.get(
@@ -15,6 +21,19 @@ export async function registerSearchRoutes(app: FastifyInstance) {
       },
     },
     getSearchResults,
+  )
+
+  app.get(
+    '/search-mp-doc',
+    {
+      schema: {
+        tags: ['Search'],
+        summary: 'Search for documents of an MP',
+        querystring: searchQuerySchema,
+        response: { 200: searchMPDocResultsResponseSchema },
+      },
+    },
+    getSearchMPDocResults,
   )
 
   app.get(

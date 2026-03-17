@@ -15,9 +15,25 @@ export const searchResultItemSchema = z.object({
   }),
 })
 
+export const searchMPDocResultItemSchema = z.object({
+  date: z.string(),
+  term: z.number(),
+  session: z.number(),
+  meeting: z.number(),
+  house: z.number(),
+})
+
 // Raw payload for GET /search
 export const searchResultsResponseSchema = z.object({
   results: z.array(searchResultItemSchema),
+  count: z.number(),
+  next: z.number().nullable(),
+  previous: z.number().nullable(),
+})
+
+// Raw payload for GET /search
+export const searchMPDocResultsResponseSchema = z.object({
+  results: z.array(searchMPDocResultItemSchema),
   count: z.number(),
   next: z.number().nullable(),
   previous: z.number().nullable(),
