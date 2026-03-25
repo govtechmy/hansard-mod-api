@@ -16,6 +16,8 @@ function buildFilterClauses(server: Pick<FastifyInstance, 'models'>, query: Sear
       const houseCode = HOUSE_TO_CODE[`${query.house}` as House]
       if (houseCode == null) {
         houses = [HOUSE_CODE.DEWAN_NEGARA, HOUSE_CODE.DEWAN_RAKYAT, HOUSE_CODE.KAMAR_KHAS] // default to all houses if invalid
+      } else if (houseCode === HOUSE_CODE.SEMUA) {
+        houses = [HOUSE_CODE.DEWAN_NEGARA, HOUSE_CODE.DEWAN_RAKYAT, HOUSE_CODE.KAMAR_KHAS]
       } else {
         houses = [houseCode]
       }
