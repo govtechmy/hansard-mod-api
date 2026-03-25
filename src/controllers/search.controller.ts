@@ -36,11 +36,10 @@ export async function getSearchResults(request: FastifyRequest<{ Querystring: Se
     const startDate = await startDatePromise
     const endDate = request.query.end_date ?? new Date().toISOString().slice(0, 10)
     const windowSize = Number(request.query.window_size ?? 120)
-    const q = (request.query.q ?? '').toString().trim().toLowerCase()
+    const q = (request.query.q ?? '').toString().trim()
     const uid = request.query.uid ? Number(request.query.uid) : undefined
     const pageSize = Number(request.query.page_size ?? DEFAULT_PAGE_SIZE)
     const pageInput = Math.max(1, Number(request.query.page ?? 1))
-
     const searchSvc = new SearchService()
     const serviceResponse = await searchSvc.search(sequelize, request.query, {
       startDate,

@@ -120,7 +120,7 @@ export class SearchService {
       selectHeadline = headlineFragment.select
       selectRank = headlineFragment.rankSelect
       orderBy = headlineFragment.order
-      repl.q = parameters.q
+      Object.assign(repl, headlineFragment.params)
       whereParts.push(headlineFragment.condition)
     }
 
