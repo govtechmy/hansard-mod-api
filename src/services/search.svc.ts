@@ -247,7 +247,15 @@ export class SearchService {
     `
 
     const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : ''
-    const countSql = `SELECT count(*) as count ${baseFrom} ${whereSql}`
+    const countSql = `
+      SELECT count(*) as count
+      FROM (
+        SELECT DISTINCT si.date, pc.term, pc.session, pc.meeting, pc.house
+        ${baseFrom}
+        ${whereSql}
+      )
+    `
+
     const countRows = await sequelize.query<SearchCountRow>(countSql, { replacements: repl, type: QueryTypes.SELECT })
     const total = Number(countRows[0]?.count ?? 0)
 
@@ -262,7 +270,7 @@ export class SearchService {
 
     const { offset, next, previous } = paginate(total, parameters.pageInput, parameters.pageSize)
     const selectSql = `
-      SELECT DISTINCT  si.date as sitting_date, pc.term, pc.session, pc.meeting,  pc.house
+      SELECT DISTINCT si.date as sitting_date, pc.term, pc.session, pc.meeting, pc.house
       ${baseFrom}
       ${whereSql}
       ORDER BY ${orderBy}
