@@ -12,6 +12,7 @@ export const searchResultItemSchema = z.object({
     term: z.number(),
     session: z.number(),
     meeting: z.number(),
+    house: z.number().nullable().optional(),
   }),
 })
 

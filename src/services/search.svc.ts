@@ -177,6 +177,7 @@ export class SearchService {
           term: Number(r.term ?? 0),
           session: Number(r.session ?? 0),
           meeting: Number(r.meeting ?? 0),
+          house: r.house,
         },
       }))
 
