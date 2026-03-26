@@ -20,7 +20,6 @@ export const searchQuerySchema = z.object({
 export const searchCounterQuerySchema = z.object({
   start_date: z.string().optional(),
   end_date: z.string().optional(),
-  window_size: z.coerce.number().optional(),
   party: z.string().optional(),
   age_group: z.string().optional(),
   sex: z.enum(['m', 'f']).optional(),
