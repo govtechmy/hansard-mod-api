@@ -122,7 +122,6 @@ export async function getSearchCounter(request: FastifyRequest<{ Querystring: Se
     const { sequelize } = request.server
     const startDate = request.query.start_date ?? (await deriveDefaultStartDateDR(request.server.models))
     const endDate = request.query.end_date ?? new Date().toISOString().slice(0, 10)
-    const windowSize = Number(request.query.window_size ?? 120)
     const q = (request.query.q ?? '').toString().trim()
     const uid = request.query.uid ? Number(request.query.uid) : undefined
 
@@ -130,7 +129,6 @@ export async function getSearchCounter(request: FastifyRequest<{ Querystring: Se
     const serviceResponse = await searchSvc.searchCounter(sequelize, request.query, {
       startDate,
       endDate,
-      windowSize,
       q,
       uid,
     })
