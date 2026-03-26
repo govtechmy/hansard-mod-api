@@ -17,4 +17,16 @@ export const searchQuerySchema = z.object({
   page_size: z.coerce.number().optional(),
 })
 
+export const searchCounterQuerySchema = z.object({
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+  window_size: z.coerce.number().optional(),
+  party: z.string().optional(),
+  age_group: z.string().optional(),
+  sex: z.enum(['m', 'f']).optional(),
+  ethnicity: z.string().optional(),
+  q: z.string().optional(),
+  uid: z.coerce.number().optional(),
+})
+
 export const searchPlotQuerySchema = searchQuerySchema

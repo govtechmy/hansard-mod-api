@@ -21,6 +21,11 @@ export interface SearchCountRow {
   count: number | string | null
 }
 
+export interface SearchHouseCountRow {
+  house: number | string | null
+  count: number | string | null
+}
+
 export interface SearchSpeechRow {
   index: number | string
   speaker_name: string | null
