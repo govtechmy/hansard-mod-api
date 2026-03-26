@@ -1,7 +1,9 @@
 import type { FastifyInstance } from 'fastify'
 
-import { getSearchMPDocResults, getSearchPlot, getSearchResults } from '@/controllers/search.controller'
+import { getSearchCounter, getSearchMPDocResults, getSearchPlot, getSearchResults } from '@/controllers/search.controller'
 import {
+  searchCounterQuerySchema,
+  searchCounterResponseSchema,
   searchMPDocResultsResponseSchema,
   searchPlotQuerySchema,
   searchPlotResponseSchema,
@@ -21,6 +23,19 @@ export async function registerSearchRoutes(app: FastifyInstance) {
       },
     },
     getSearchResults,
+  )
+
+  app.get(
+    '/search/counter',
+    {
+      schema: {
+        tags: ['Search'],
+        summary: 'Keyword result counter by house',
+        querystring: searchCounterQuerySchema,
+        response: { 200: searchCounterResponseSchema },
+      },
+    },
+    getSearchCounter,
   )
 
   app.get(
