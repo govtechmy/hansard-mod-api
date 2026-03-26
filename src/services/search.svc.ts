@@ -204,7 +204,6 @@ export class SearchService {
     parameters: {
       startDate: string
       endDate: string
-      windowSize: number
       q: string
       uid?: number
     },
@@ -246,7 +245,7 @@ export class SearchService {
       repl.uid = parameters.uid
     }
 
-    const headlineFragment = parameters.q ? buildHeadlineFragment(parameters.q, parameters.windowSize) : null
+    const headlineFragment = parameters.q ? buildHeadlineFragment(parameters.q, 120) : null
     if (headlineFragment) {
       Object.assign(repl, headlineFragment.params)
       whereParts.push(headlineFragment.condition)
