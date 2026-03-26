@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 
 import { SearchService } from '@/services/search.svc'
-import type { SearchMPDocResultsResponse, SearchQuery, SearchResultsResponse } from '@/types'
+import type { SearchCounterQuery, SearchCounterResponse, SearchMPDocResultsResponse, SearchQuery, SearchResultsResponse } from '@/types'
 import { type House, HOUSE_CODE, HOUSE_TO_CODE } from '@/types/enum'
 import { deriveDefaultStartDateDR } from '@/utils'
 
@@ -110,6 +110,41 @@ export async function getSearchMPDocResults(request: FastifyRequest<{ Querystrin
     const next = serviceResponse.success.next
     const previous = serviceResponse.success.previous
     const response: SearchMPDocResultsResponse = { results, count: total, next, previous }
+    return reply.send(response)
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Bad Request'
+    return reply.code(400).send({ error: message })
+  }
+}
+
+export async function getSearchCounter(request: FastifyRequest<{ Querystring: SearchCounterQuery }>, reply: FastifyReply) {
+  try {
+    const { sequelize } = request.server
+    const startDate = request.query.start_date ?? (await deriveDefaultStartDateDR(request.server.models))
+    const endDate = request.query.end_date ?? new Date().toISOString().slice(0, 10)
+    const windowSize = Number(request.query.window_size ?? 120)
+    const q = (request.query.q ?? '').toString().trim()
+    const uid = request.query.uid ? Number(request.query.uid) : undefined
+
+    const searchSvc = new SearchService()
+    const serviceResponse = await searchSvc.searchCounter(sequelize, request.query, {
+      startDate,
+      endDate,
+      windowSize,
+      q,
+      uid,
+    })
+
+    if (serviceResponse.error || !serviceResponse.success) {
+      const { code, type, message } = serviceResponse.error ?? {
+        code: 500,
+        type: 'text/plain',
+        message: 'Internal Server Error',
+      }
+      return reply.code(code).type(type).send(message)
+    }
+
+    const response: SearchCounterResponse = serviceResponse.success
     return reply.send(response)
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Bad Request'

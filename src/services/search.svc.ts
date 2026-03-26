@@ -1,8 +1,11 @@
 import { QueryTypes, type Sequelize } from 'sequelize'
 
 import type {
+  SearchCounterQuery,
+  SearchCounterResponse,
   SearchCountRow,
   SearchFrequencyRow,
+  SearchHouseCountRow,
   SearchMPDocResultsResponse,
   SearchPlotResponse,
   SearchQuery,
@@ -12,6 +15,7 @@ import type {
   SearchTopSpeakerRow,
   SqlBindings,
 } from '@/types'
+import { HOUSE_CODE } from '@/types/enum'
 import { buildHeadlineFragment, paginate, resampleSeries, translateAgeGroupToBirthYearBounds } from '@/utils'
 
 export interface SearchServiceResponse {
@@ -34,6 +38,15 @@ export interface SearchMPDocServiceResponse {
 
 export interface SearchServicePlotResponse {
   success?: SearchPlotResponse
+  error?: {
+    code: number
+    type: string
+    message: string
+  }
+}
+
+export interface SearchCounterServiceResponse {
+  success?: SearchCounterResponse
   error?: {
     code: number
     type: string
@@ -183,6 +196,96 @@ export class SearchService {
 
     response.success = { count: total, next, previous, results }
     return response
+  }
+
+  public async searchCounter(
+    sequelize: Sequelize,
+    query: SearchCounterQuery,
+    parameters: {
+      startDate: string
+      endDate: string
+      windowSize: number
+      q: string
+      uid?: number
+    },
+  ): Promise<SearchCounterServiceResponse> {
+    const whereParts: string[] = ['pc.house IN (:houses)', 'si.date >= :startDate', 'si.date <= :endDate']
+    const repl: SqlBindings = {
+      houses: [HOUSE_CODE.DEWAN_RAKYAT, HOUSE_CODE.DEWAN_NEGARA, HOUSE_CODE.KAMAR_KHAS],
+      startDate: parameters.startDate,
+      endDate: parameters.endDate,
+    }
+
+    if (query.party) {
+      whereParts.push('ah.party = :party')
+      repl.party = query.party
+    }
+
+    if (query.sex) {
+      whereParts.push('a.sex = :sex')
+      repl.sex = query.sex
+    }
+
+    if (query.ethnicity) {
+      whereParts.push('a.ethnicity = :ethnicity')
+      repl.ethnicity = query.ethnicity
+    }
+
+    if (query.age_group) {
+      const grp = query.age_group
+      const currentYear = new Date().getFullYear()
+      const trans = translateAgeGroupToBirthYearBounds(grp, currentYear)
+      if (trans) {
+        whereParts.push(trans.clause)
+        Object.assign(repl, trans.params)
+      }
+    }
+
+    if (parameters.uid) {
+      whereParts.push('a.new_author_id = :uid')
+      repl.uid = parameters.uid
+    }
+
+    const headlineFragment = parameters.q ? buildHeadlineFragment(parameters.q, parameters.windowSize) : null
+    if (headlineFragment) {
+      Object.assign(repl, headlineFragment.params)
+      whereParts.push(headlineFragment.condition)
+    }
+
+    const baseFrom = `
+      FROM api_speech s
+      JOIN api_sitting si ON s.sitting_id = si.sitting_id
+      JOIN api_parliamentary_cycle pc ON si.cycle_id = pc.cycle_id
+      LEFT JOIN api_author_history ah ON s.speaker_id = ah.record_id
+      LEFT JOIN api_author a ON ah.author_id = a.new_author_id
+    `
+    const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : ''
+    const countSql = `
+      SELECT pc.house as house, count(*) as count
+      ${baseFrom}
+      ${whereSql}
+      GROUP BY pc.house
+    `
+
+    const countRows = await sequelize.query<SearchHouseCountRow>(countSql, {
+      replacements: repl,
+      type: QueryTypes.SELECT,
+    })
+
+    const houseCounts: SearchCounterResponse['house_counts'] = {
+      dewan_rakyat: 0,
+      dewan_negara: 0,
+      kamar_khas: 0,
+    }
+    for (const row of countRows) {
+      const house = Number(row.house)
+      const count = Number(row.count ?? 0)
+      if (house === HOUSE_CODE.DEWAN_RAKYAT) houseCounts.dewan_rakyat = count
+      if (house === HOUSE_CODE.DEWAN_NEGARA) houseCounts.dewan_negara = count
+      if (house === HOUSE_CODE.KAMAR_KHAS) houseCounts.kamar_khas = count
+    }
+
+    return { success: { house_counts: houseCounts } }
   }
 
   public async searchMPDoc(

@@ -40,6 +40,14 @@ export const searchMPDocResultsResponseSchema = z.object({
   previous: z.number().nullable(),
 })
 
+export const searchCounterResponseSchema = z.object({
+  house_counts: z.object({
+    dewan_rakyat: z.number(),
+    dewan_negara: z.number(),
+    kamar_khas: z.number(),
+  }),
+})
+
 // Raw payload for GET /search-plot
 export const searchPlotResponseSchema = z.object({
   chart_data: z.object({ date: z.array(z.string()), freq: z.array(z.number()) }),
