@@ -1,6 +1,7 @@
 import { QueryTypes, type Sequelize } from 'sequelize'
 
 import type {
+  SearchAuthorRow,
   SearchCounterQuery,
   SearchCounterResponse,
   SearchCountRow,
@@ -17,6 +18,10 @@ import type {
 } from '@/types'
 import { HOUSE_CODE } from '@/types/enum'
 import { buildHeadlineFragment, paginate, resampleSeries, translateAgeGroupToBirthYearBounds } from '@/utils'
+
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&')
+}
 
 export interface SearchServiceResponse {
   success?: SearchResultsResponse
@@ -72,6 +77,30 @@ export class SearchService {
     return ranges
   }
 
+  public async findMatchingMPsByName(sequelize: Sequelize, mpName: string): Promise<Array<{ author_id: number; name: string }>> {
+    const normalizedName = mpName.trim().toLowerCase()
+    if (!normalizedName) return []
+
+    const sql = `
+      SELECT a.new_author_id as author_id, a.name
+      FROM api_author a
+      WHERE LOWER(a.name) LIKE :namePattern ESCAPE '\\'
+      ORDER BY a.new_author_id ASC
+    `
+    const rows = await sequelize.query<SearchAuthorRow>(sql, {
+      replacements: { namePattern: `%${escapeLikePattern(normalizedName)}%` },
+      type: QueryTypes.SELECT,
+    })
+
+    return rows
+      .map(row => {
+        const authorId = Number(row.author_id)
+        if (!Number.isFinite(authorId)) return null
+        return { author_id: authorId, name: row.name ?? '' }
+      })
+      .filter((row): row is { author_id: number; name: string } => row != null)
+  }
+
   public async search(
     sequelize: Sequelize,
     query: SearchQuery,
@@ -82,6 +111,7 @@ export class SearchService {
       windowSize: number
       q: string
       uid?: number
+      authorIds?: number[]
       pageSize: number
       pageInput: number
     },
@@ -123,6 +153,11 @@ export class SearchService {
     if (parameters.uid) {
       whereParts.push('a.new_author_id = :uid')
       repl.uid = parameters.uid
+    }
+
+    if (parameters.authorIds && parameters.authorIds.length > 0) {
+      whereParts.push('a.new_author_id IN (:authorIds)')
+      repl.authorIds = parameters.authorIds
     }
 
     let selectHeadline = ''
