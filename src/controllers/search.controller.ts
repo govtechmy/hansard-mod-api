@@ -48,33 +48,14 @@ export async function getSearchResults(request: FastifyRequest<{ Querystring: Se
     if (separatorIndex > -1) {
       const keywordQuery = rawQ.slice(0, separatorIndex).trim()
       const mpNameQuery = rawQ.slice(separatorIndex + 1).trim()
-      console.log('[search:query-parse] detected colon query', {
-        rawQ,
-        keywordQuery,
-        keywordTerms: keywordQuery.split(/\s+/).filter(Boolean),
-        mpNameQuery,
-      })
 
       if (keywordQuery && mpNameQuery) {
         const matchedMPs = await searchSvc.findMatchingMPsByName(sequelize, mpNameQuery)
-        console.log('[search:query-parse] mp match result', {
-          mpNameQuery,
-          matchedMPCount: matchedMPs.length,
-          matchedAuthorIds: matchedMPs.map(mp => mp.author_id),
-        })
 
         if (matchedMPs.length > 0) {
           q = keywordQuery
           authorIds = matchedMPs.map(mp => mp.author_id)
-          console.log('[search:query-parse] applying mp-aware search', {
-            effectiveKeywordQuery: q,
-            authorIds,
-          })
-        } else {
-          console.log('[search:query-parse] no mp matched, fallback to normal search', { effectiveQuery: rawQ })
         }
-      } else {
-        console.log('[search:query-parse] invalid colon query, fallback to normal search', { effectiveQuery: rawQ })
       }
     }
 
