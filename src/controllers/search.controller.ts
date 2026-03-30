@@ -36,11 +36,29 @@ export async function getSearchResults(request: FastifyRequest<{ Querystring: Se
     const startDate = await startDatePromise
     const endDate = request.query.end_date ?? new Date().toISOString().slice(0, 10)
     const windowSize = Number(request.query.window_size ?? 120)
-    const q = (request.query.q ?? '').toString().trim()
+    const rawQ = (request.query.q ?? '').toString().trim()
     const uid = request.query.uid ? Number(request.query.uid) : undefined
     const pageSize = Number(request.query.page_size ?? DEFAULT_PAGE_SIZE)
     const pageInput = Math.max(1, Number(request.query.page ?? 1))
     const searchSvc = new SearchService()
+    let q = rawQ
+    let authorIds: number[] | undefined
+
+    const separatorIndex = rawQ.indexOf(':')
+    if (separatorIndex > -1) {
+      const keywordQuery = rawQ.slice(0, separatorIndex).trim()
+      const mpNameQuery = rawQ.slice(separatorIndex + 1).trim()
+
+      if (keywordQuery && mpNameQuery) {
+        const matchedMPs = await searchSvc.findMatchingMPsByName(sequelize, mpNameQuery)
+
+        if (matchedMPs.length > 0) {
+          q = keywordQuery
+          authorIds = matchedMPs.map(mp => mp.author_id)
+        }
+      }
+    }
+
     const serviceResponse = await searchSvc.search(sequelize, request.query, {
       startDate,
       endDate,
@@ -50,6 +68,7 @@ export async function getSearchResults(request: FastifyRequest<{ Querystring: Se
       uid,
       pageSize,
       pageInput,
+      authorIds,
     })
 
     if (serviceResponse.error || !serviceResponse.success) {

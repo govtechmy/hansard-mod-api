@@ -21,6 +21,11 @@ export interface SearchCountRow {
   count: number | string | null
 }
 
+export interface SearchAuthorRow {
+  author_id: number | string | null
+  name: string | null
+}
+
 export interface SearchHouseCountRow {
   house: number | string | null
   count: number | string | null
