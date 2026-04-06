@@ -181,7 +181,7 @@ export class SearchService {
     `
 
     const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : ''
-    const countSql = `SELECT count(*) as count ${baseFrom} ${whereSql}`
+    const countSql = `SELECT count(s.speech_id) as count ${baseFrom} ${whereSql}`
     const countRows = await sequelize.query<SearchCountRow>(countSql, { replacements: repl, type: QueryTypes.SELECT })
     const total = Number(countRows[0]?.count ?? 0)
 

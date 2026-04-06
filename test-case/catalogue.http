@@ -9,7 +9,7 @@ GET {{url}}/api/catalogue/
 GET {{url}}/api/search?q=sekolah&uid=4266&house=dewan-rakyat&window_size=100&page=1&page_size=10
 
 ### Search all houses for "sekolah"
-GET {{url}}/api/search?q=sekolah&house=dewan-rakyat&house=dewan-negara&house=kamar-khas&window_size=100&page=1&page_size=10
+GET {{url}}/api/search?q="minyak subsidi"&house=dewan-rakyat&house=dewan-negara&house=kamar-khas&window_size=100&page=1&page_size=10
 
 ### Search all houses for uid 4266
 GET {{url}}/api/search?uid=4266&house=dewan-rakyat&house=dewan-negara&house=kamar-khas&window_size=100&page=1&page_size=10
