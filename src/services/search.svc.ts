@@ -481,9 +481,10 @@ export class SearchService {
       repl.uid = Number(query.uid)
     }
 
-    if (parameters.q) {
-      whereParts.push("s.speech_vector @@ plainto_tsquery('english', :q)")
-      repl.q = parameters.q
+    const headlineFragment = parameters.q ? buildHeadlineFragment(parameters.q, 100) : null
+    if (headlineFragment) {
+      Object.assign(repl, headlineFragment.params)
+      whereParts.push(headlineFragment.condition)
     }
 
     const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : ''
