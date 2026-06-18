@@ -3,6 +3,9 @@
 
 ###
 
+GET {{url}}/api/health
+
+###
 GET {{url}}/api/catalogue/
 
 ### Search Dewan Rakyat for "sekolah" by author with uid 4266
