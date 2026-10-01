@@ -9,6 +9,8 @@ import { registerErrorHandler } from './middleware/errorHandler'
 import * as plugins from './plugins/index.plugin'
 import { registerApiRoutes } from './routes/index.route'
 
+
+// test new aws deployment
 async function buildServer(env: config.Env): Promise<FastifyInstance> {
   //build the server
   const { isProduction, LOG_LEVEL } = env
