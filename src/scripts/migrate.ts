@@ -1,10 +1,9 @@
-import { Sequelize } from 'sequelize'
 import { SequelizeStorage, Umzug } from 'umzug'
 
-import { env } from '@/config/env.config'
+import { getSequelizeClient } from '../config/db.config'
 
 async function getUmzug() {
-  const sequelize = new Sequelize(env.DATABASE_URL, { dialect: 'postgres', logging: false })
+  const sequelize = getSequelizeClient()
   const umzug = new Umzug({
     migrations: {
       glob: 'src/migrations/*.ts',
