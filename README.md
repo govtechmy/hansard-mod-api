@@ -154,6 +154,7 @@ All API endpoints are prefixed with `/api` and require Bearer token authenticati
 
 ### Search
 - `GET /api/search` - Live search across speeches
+- `GET /api/search/suggestion?q=harga%20minyk%20naik` - Suggest a typo-corrected query using Hansard vocabulary (fuzzy sugession)
 - `GET /api/search-plot` - Search frequency time series and aggregates
 - `GET /api/autocomplete` - Autocomplete keyword suggestions
 
@@ -161,3 +162,19 @@ All API endpoints are prefixed with `/api` and require Bearer token authenticati
 - `GET /api/attendance` - Attendance statistics by term/session/meeting
 
 For detailed request/response schemas and examples, visit the Swagger UI documentation at `http://localhost:3000/docs`.
+
+### Search suggestions
+
+Run `bun run migrate:up` before using `GET /api/search/suggestion?q=harga%20minyk%20naik`.
+It returns `{ query, suggestions, did_you_mean }`; no correction returns `[]` and `null`.
+Suggestions use an indexed Hansard dictionary and are spelling hints, not guaranteed phrase matches.
+After speech imports or edits, run `bun run search:dictionary:refresh`. Initial builds can take time on large databases.
+
+HTTP examples are in `test-case/search-suggestion.http` and `test-case/speech.http`.
+For speech uploads, choose an existing `sitting_id` from the catalogue first. Requests labeled 400 intentionally test validation.
+
+Run integration tests against an isolated database ending in `_test`:
+
+```bash
+SEARCH_SUGGESTION_TEST_DATABASE_URL=postgres://postgres:password@localhost:5432/hansard_test bun test test-case/search-suggestion.test.ts
+```
