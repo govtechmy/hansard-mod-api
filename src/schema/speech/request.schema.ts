@@ -12,6 +12,10 @@ export const speechItemSchema = z.object({
   level_2: z.string().nullable(),
   level_3: z.string().nullable(),
   is_annotation: z.boolean(),
+  source_page_start: z.number().int().nullable().optional(),
+  source_page_end: z.number().int().nullable().optional(),
+  pdf_page_start: z.number().int().nullable().optional(),
+  pdf_page_end: z.number().int().nullable().optional(),
 })
 
 export const speechBulkBodySchema = z.array(speechItemSchema)
