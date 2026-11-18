@@ -1,0 +1,81 @@
+@url = http://localhost:3000
+# Bearer auth is currently disabled in src/server.ts; no .env token is needed.
+# Run bun run migrate:up before testing page fields.
+# Select an existing sitting_id from the catalogue response below.
+@sitting_id = 1
+@speech_index = {{$randomInt 1000000000 1499999999}}
+@annotation_index = {{$randomInt 1500000000 2000000000}}
+
+### Find an existing sitting (copy a sitting_id into the variable above)
+GET {{url}}/api/catalogue?house=dewan-rakyat
+
+### Bulk create a speech and an annotation
+# Use an existing sitting_id and unused indexes for that sitting.
+# Expected: 201 with an array of two created items matching the payload,
+# including numeric page ranges for the speech and null page ranges for the annotation.
+POST {{url}}/api/speech
+Content-Type: application/json
+
+[
+  {
+    "sitting_id": {{sitting_id}},
+    "index": {{speech_index}},
+    "speaker_id": null,
+    "timestamp": "10:00:00",
+    "speech": "Terima kasih.",
+    "speech_tokens": ["terima", "kasih"],
+    "length": 2,
+    "level_1": "UCAPAN",
+    "level_2": null,
+    "level_3": null,
+    "is_annotation": false,
+    "source_page_start": 1,
+    "source_page_end": 2,
+    "pdf_page_start": 10,
+    "pdf_page_end": 11
+  },
+  {
+    "sitting_id": {{sitting_id}},
+    "index": {{annotation_index}},
+    "speaker_id": null,
+    "timestamp": "10:01:00",
+    "speech": null,
+    "speech_tokens": [],
+    "length": 0,
+    "level_1": null,
+    "level_2": null,
+    "level_3": null,
+    "is_annotation": true,
+    "source_page_start": null,
+    "source_page_end": null,
+    "pdf_page_start": null,
+    "pdf_page_end": null
+  }
+]
+
+### Empty bulk payload
+# Expected: 201 with an empty array.
+POST {{url}}/api/speech
+Content-Type: application/json
+
+[]
+
+### Expected validation error: payload is not an array (400 is a passing result)
+# Expected: 400 because bulk creation requires an array.
+POST {{url}}/api/speech
+Content-Type: application/json
+
+{}
+
+### Expected validation error: missing fields (400 is a passing result)
+# Expected: 400 with validation errors for the incomplete item.
+POST {{url}}/api/speech
+Content-Type: application/json
+
+[
+  {
+    "sitting_id": {{sitting_id}},
+    "index": {{speech_index}},
+    "speech": "Terima kasih."
+  }
+]
