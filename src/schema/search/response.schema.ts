@@ -1,5 +1,11 @@
 import { z } from 'zod'
 
+export const searchSuggestionResponseSchema = z.object({
+  query: z.string(),
+  suggestions: z.array(z.string()),
+  did_you_mean: z.string().nullable(),
+})
+
 export const searchResultItemSchema = z.object({
   index: z.number(),
   speaker: z.string().nullable().optional(),
