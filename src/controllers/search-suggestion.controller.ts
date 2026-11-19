@@ -3,21 +3,24 @@ import { QueryTypes } from 'sequelize'
 import type { z } from 'zod'
 
 import type { searchSuggestionQuerySchema } from '@/schema/search'
+import { SEARCH_ABBREVIATIONS as abbreviations } from '@/utils/constants/search-abbreviations'
 
 export async function getSearchSuggestion(
   request: FastifyRequest<{ Querystring: z.infer<typeof searchSuggestionQuerySchema> }>,
   reply: FastifyReply,
 ) {
   const query = request.query.q.trim().toLowerCase().replace(/\s+/gu, ' ')
-  const words = [...new Set(query.match(/\p{L}+/gu) ?? [])].filter(word => word.length >= 3 && word.length <= 64)
+  const expandedQuery = query.replace(/\p{L}+/gu, word => abbreviations.get(word) ?? word)
+  const words = [...new Set(expandedQuery.match(/\p{L}+/gu) ?? [])].filter(word => word.length >= 3 && word.length <= 64)
   if (words.length === 0) {
     return reply.send({ query, suggestions: [], did_you_mean: null })
   }
 
   // shortcut: dictionary is a corpus snapshot, automate refreshes if imports become frequent.
-  const rows = await request.server.sequelize.query<{ original: string; correction: string }>(
+  const rows = await request.server.sequelize.query<{ original: string; correction: string; known: boolean }>(
     `
-    SELECT input.word AS original, coalesce(fuzzy.word, input.word) AS correction
+    SELECT input.word AS original, coalesce(fuzzy.word, input.word) AS correction,
+      (exact.word IS NOT NULL OR fuzzy.word IS NOT NULL) AS known
     FROM unnest(ARRAY[:words]::text[]) AS input(word)
     LEFT JOIN api_search_dictionary exact ON exact.word = input.word
     LEFT JOIN LATERAL (
@@ -40,7 +43,19 @@ export async function getSearchSuggestion(
   )
 
   const corrections = new Map(rows.map(row => [row.original, row.correction]))
-  const corrected = query.replace(/\p{L}+/gu, word => corrections.get(word) ?? word)
+  const knownWords = new Set(rows.filter(row => row.known).map(row => row.original))
+  // Expand repetition shorthand such as "kanak knk" before correcting individual words.
+  const expanded = query.replace(/(?<=(\p{L}+))\s+(\p{L}+)/gu, (match, previous: string, abbreviation: string) => {
+    const original = abbreviations.get(previous) ?? previous
+    const word = corrections.get(original) ?? original
+    return knownWords.has(original) &&
+      abbreviation.length >= 3 &&
+      abbreviation.length < word.length &&
+      word.replace(/[aeiou]/gu, '') === abbreviation
+      ? `-${previous}`
+      : match
+  })
+  const corrected = expanded.replace(/\p{L}+/gu, word => abbreviations.get(word) ?? corrections.get(word) ?? word)
   const suggestion = corrected === query ? null : corrected
   return reply.send({ query, suggestions: suggestion ? [suggestion] : [], did_you_mean: suggestion })
 }
