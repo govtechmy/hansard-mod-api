@@ -5,12 +5,12 @@ export const sittingMetaSchema = z.object({
   cycle: z
     .object({
       cycle_id: z.number(),
-      start_date: z.string(),
-      end_date: z.string(),
+      start_date: z.string().nullable(),
+      end_date: z.string().nullable(),
       house: z.number(),
       term: z.number(),
       session: z.number(),
-      meeting: z.number(),
+      meeting: z.number().nullable(),
     })
     .optional(),
   cycle_id: z.number().optional(),
@@ -37,13 +37,13 @@ export const upsertSittingResponseSchema = z.union([
 export const getSittingListResponseSchema = z.array(
   z.object({
     term: z.number(),
-    start_date: z.string().optional(),
-    end_date: z.string().optional(),
+    start_date: z.string().nullable().optional(),
+    end_date: z.string().nullable().optional(),
     sessions: z.array(
       z.object({
         session: z.number(),
-        start_date: z.string().optional(),
-        end_date: z.string().optional(),
+        start_date: z.string().nullable().optional(),
+        end_date: z.string().nullable().optional(),
       }),
     ),
   }),
