@@ -69,7 +69,7 @@
     "@fastify/swagger-ui": "^5.2.3",
     "ajv": "8.18.0",
     "bcrypt": "^6.0.0",
-    "fastify": "5.12.5",
+    "fastify": "5.12.6",
     "fastify-type-provider-zod": "^5.0.3",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1",
