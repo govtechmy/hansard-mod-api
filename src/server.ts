@@ -9,7 +9,6 @@ import { registerErrorHandler } from './middleware/errorHandler'
 import * as plugins from './plugins/index.plugin'
 import { registerApiRoutes } from './routes/index.route'
 
-
 // test new aws deployment
 async function buildServer(env: config.Env): Promise<FastifyInstance> {
   //build the server
@@ -24,7 +23,7 @@ async function buildServer(env: config.Env): Promise<FastifyInstance> {
         write: chunk => {
           try {
             const obj = JSON.parse(chunk)
-            if (obj.method === 'GET' && obj.url === '/' && obj.body === '[omitted]') {
+            if (obj.method === 'GET' && (obj.url === '/' || obj.url === '/health') && obj.body === '[omitted]') {
               return // skip logging for health checks
             }
 
@@ -53,6 +52,10 @@ async function buildServer(env: config.Env): Promise<FastifyInstance> {
   app.setSerializerCompiler(serializerCompiler)
 
   await plugins.registerAllPlugins(app, isProduction)
+  app.get('/health', { schema: { tags: ['System'], summary: 'Healthcheck' } }, async () => {
+    return { status: 'healthy' }
+  })
+
   // Simple bearer token auth for all /api/ routes
   // Enable verbose auth logging when LOG_LEVEL is debug (optional behavior)
   // registerAuth(app, env.API_AUTH_TOKEN)

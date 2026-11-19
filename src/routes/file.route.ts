@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
-import { getFileDownloadLink } from 'src/controllers/file.controller'
 
+import { getFileDownloadLink } from '@/controllers/file.controller'
 import { fileDownloadRequestSchema, fileDownloadResponseSchema, standardErrorResponseSchema } from '@/schema'
 
 import { withStandardErrors } from '../utils/swagger.util'

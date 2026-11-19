@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import { createErrorResponse, createSuccessResponse } from 'src/utils/response.util'
+
+import { createErrorResponse, createSuccessResponse } from '@/utils/response.util'
 
 import { S3Service } from '../services/s3.svc'
 

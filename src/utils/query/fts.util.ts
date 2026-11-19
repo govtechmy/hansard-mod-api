@@ -1,9 +1,5 @@
 import type { SqlBindings } from '@/types'
 
-function escapeLikePattern(value: string): string {
-  return value.replace(/[\\%_]/g, '\\$&')
-}
-
 export function buildHeadlineFragment(
   q: string,
   windowSize: number,
