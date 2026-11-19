@@ -2,27 +2,12 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 
 import { SearchService } from '@/services/search.svc'
 import type { SearchCounterQuery, SearchCounterResponse, SearchMPDocResultsResponse, SearchQuery, SearchResultsResponse } from '@/types'
-import { type House, HOUSE_CODE, HOUSE_TO_CODE } from '@/types/enum'
-import { deriveDefaultStartDateDR } from '@/utils'
+import { deriveDefaultStartDateDR, resolveHouses } from '@/utils'
 
 const DEFAULT_PAGE_SIZE = 9
 
 function buildFilterClauses(server: Pick<FastifyInstance, 'models'>, query: SearchQuery) {
-  let houses = [] as number[]
-  if (query.house) {
-    if (Array.isArray(query.house)) {
-      houses = query.house.map(h => HOUSE_TO_CODE[`${h}` as House]).filter((code): code is number => code != null)
-    } else {
-      const houseCode = HOUSE_TO_CODE[`${query.house}` as House]
-      if (houseCode == null) {
-        houses = [HOUSE_CODE.DEWAN_NEGARA, HOUSE_CODE.DEWAN_RAKYAT, HOUSE_CODE.KAMAR_KHAS] // default to all houses if invalid
-      } else if (houseCode === HOUSE_CODE.SEMUA) {
-        houses = [HOUSE_CODE.DEWAN_NEGARA, HOUSE_CODE.DEWAN_RAKYAT, HOUSE_CODE.KAMAR_KHAS]
-      } else {
-        houses = [houseCode]
-      }
-    }
-  }
+  const houses = resolveHouses(query.house)
 
   const startDatePromise = query.start_date ? Promise.resolve(query.start_date) : deriveDefaultStartDateDR(server.models)
   return { houses, startDatePromise }

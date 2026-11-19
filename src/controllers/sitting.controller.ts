@@ -11,9 +11,9 @@ import type {
   UpsertSittingBody,
   UpsertSittingResponse,
 } from '@/types'
-import { type House, HOUSE_TO_CODE } from '@/types/enum'
+import { type House, HOUSE_CODE, HOUSE_TO_CODE } from '@/types/enum'
 import type { RawSpeechRow } from '@/utils'
-import { buildNestedSpeeches, buildSpeechRows } from '@/utils'
+import { buildNestedSpeeches, buildSpeechRows, resolveHouses } from '@/utils'
 
 function parseSpeechData(payload: string | null | undefined): RawSpeechRow[] | null {
   if (!payload) return null
@@ -29,20 +29,8 @@ export async function getSittingList(request: FastifyRequest<{ Querystring: GetS
   try {
     const { ParliamentaryCycle } = request.server.models
 
-    let houses = [] as number[]
-    if (request.query.house) {
-      if (Array.isArray(request.query.house)) {
-        houses = request.query.house.map(h => HOUSE_TO_CODE[`${h}` as House]).filter((code): code is number => code != null)
-      } else {
-        const houseCode = HOUSE_TO_CODE[`${request.query.house}` as House]
-        if (houseCode == null) {
-          return reply.code(400).type('text/plain').send('Invalid house type provided.')
-        }
-        houses = [houseCode]
-      }
-    }
-
-    const whereClause = houses ? { house: { [Op.in]: houses } } : undefined
+    const houses = resolveHouses(request.query.house)
+    const whereClause = { house: { [Op.in]: houses } }
 
     const parliamentaryCycles = (await ParliamentaryCycle.findAll({
       attributes: ['cycle_id', 'start_date', 'end_date', 'house', 'term', 'session', 'meeting'],
@@ -58,11 +46,11 @@ export async function getSittingList(request: FastifyRequest<{ Querystring: GetS
 
     const takwim = [] as {
       term: number
-      start_date?: string
-      end_date?: string
+      start_date?: string | null
+      end_date?: string | null
       sessions: {
         session: number
-        start_date?: string
+        start_date?: string | null
         end_date?: string | null
       }[]
     }[]
@@ -82,10 +70,13 @@ export async function getSittingList(request: FastifyRequest<{ Querystring: GetS
       }
 
       sessionObj.start_date = sessionObj.start_date
-        ? sessionObj.start_date < cycle.start_date
+        ? cycle.start_date == null || sessionObj.start_date < cycle.start_date
           ? sessionObj.start_date
           : cycle.start_date
         : cycle.start_date
+
+      sessionObj.end_date ??= null
+      termObj.end_date ??= null
 
       if (cycle.end_date) {
         sessionObj.end_date = sessionObj.end_date
@@ -96,7 +87,7 @@ export async function getSittingList(request: FastifyRequest<{ Querystring: GetS
       }
 
       termObj.start_date = termObj.start_date
-        ? termObj.start_date < cycle.start_date
+        ? cycle.start_date == null || termObj.start_date < cycle.start_date
           ? termObj.start_date
           : cycle.start_date
         : cycle.start_date
@@ -181,7 +172,7 @@ export async function upsertSitting(request: FastifyRequest<{ Body: UpsertSittin
     // Check existing by filename
     const { filename, house: houseType, date: dateStr } = request.body
     const house = HOUSE_TO_CODE[`${houseType}`]
-    if (house == null) {
+    if (house == null || house === HOUSE_CODE.SEMUA) {
       return reply.code(400).send({ error: 'House type not valid.' })
     }
     const date = new Date(dateStr)
@@ -195,8 +186,9 @@ export async function upsertSitting(request: FastifyRequest<{ Body: UpsertSittin
     const cycle = (await ParliamentaryCycle.findOne({
       where: {
         house,
-        start_date: { [Op.lte]: dateStr },
-        end_date: { [Op.gte]: dateStr },
+        ...(house === HOUSE_CODE.MAJLIS_MENGANGKAT_SUMPAH
+          ? { term: request.body.term, session: request.body.session }
+          : { start_date: { [Op.lte]: dateStr }, end_date: { [Op.gte]: dateStr } }),
       },
       raw: true,
     })) as ParliamentaryCycleRow | null
