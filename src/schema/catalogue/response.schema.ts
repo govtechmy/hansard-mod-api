@@ -8,22 +8,23 @@ const sittingItemSchema = z.object({
 })
 
 const meetingNodeSchema = z.object({
-  start_date: z.string(),
-  end_date: z.string(),
+  start_date: z.string().nullable(),
+  end_date: z.string().nullable(),
   sitting_list: z.array(sittingItemSchema).optional(),
 })
 
 const sessionNodeSchema = z
   .object({
-    start_date: z.string(),
-    end_date: z.string(),
+    start_date: z.string().nullable(),
+    end_date: z.string().nullable(),
+    sitting_list: z.array(sittingItemSchema).optional(),
   })
   .catchall(meetingNodeSchema)
 
 const termNodeSchema = z
   .object({
-    start_date: z.string(),
-    end_date: z.string(),
+    start_date: z.string().nullable(),
+    end_date: z.string().nullable(),
   })
   .catchall(sessionNodeSchema)
 

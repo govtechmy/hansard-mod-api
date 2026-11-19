@@ -17,7 +17,7 @@ export const searchResultItemSchema = z.object({
     date: z.string(),
     term: z.number(),
     session: z.number(),
-    meeting: z.number(),
+    meeting: z.number().nullable(),
     house: z.number().nullable().optional(),
   }),
 })
@@ -26,7 +26,7 @@ export const searchMPDocResultItemSchema = z.object({
   date: z.string(),
   term: z.number(),
   session: z.number(),
-  meeting: z.number(),
+  meeting: z.number().nullable(),
   house: z.number().nullable().optional(),
 })
 
@@ -51,6 +51,7 @@ export const searchCounterResponseSchema = z.object({
     dewan_rakyat: z.number(),
     dewan_negara: z.number(),
     kamar_khas: z.number(),
+    majlis_mengangkat_sumpah: z.number(),
   }),
 })
 

@@ -1,5 +1,6 @@
 import { col, fn } from 'sequelize'
 
+import { HOUSE_CODE } from '@/types/enum'
 import type { AppModels } from '@/types/fastify-sequelize'
 import type { SqlBindings } from '@/types/sql'
 
@@ -17,6 +18,7 @@ export interface MeetingNode {
 }
 
 export interface SessionNode extends Record<number, MeetingNode> {
+  sitting_list?: SittingSummary[]
   start_date: string | null
   end_date: string | null
 }
@@ -44,7 +46,7 @@ interface SittingWithCycle {
   cycle: {
     term: number
     session: number
-    meeting: number
+    meeting: number | null
   }
 }
 
@@ -89,6 +91,11 @@ export async function buildCycleMap(models: AppModels, baseWhere: CycleFilter, i
         end_date: session.end_date,
       } as SessionNode
       termNode[`${sessionId}`] = sessionNode
+
+      if (baseWhere.house === HOUSE_CODE.MAJLIS_MENGANGKAT_SUMPAH) {
+        if (!includeDropdown) sessionNode.sitting_list = []
+        continue
+      }
 
       const meetingRows = (await ParliamentaryCycle.findAll({
         where: { ...baseWhere, term: termId, session: sessionId },
@@ -156,8 +163,8 @@ export async function attachSittings(cycleMap: CycleMap, models: AppModels, sitt
     if (!termNode) continue
     const sessionNode = termNode[`${sessionId}`]
     if (!sessionNode) continue
-    const meetingNode = sessionNode[`${meetingId}`]
-    if (!meetingNode) continue
+    const documentNode = sitting.cycle.meeting == null ? sessionNode : sessionNode[`${meetingId}`]
+    if (!documentNode) continue
 
     const sittingData: SittingSummary = {
       sitting_id: sitting.sitting_id,
@@ -166,6 +173,6 @@ export async function attachSittings(cycleMap: CycleMap, models: AppModels, sitt
       is_final: sitting.is_final,
     }
 
-    meetingNode.sitting_list?.push(sittingData)
+    documentNode.sitting_list?.push(sittingData)
   }
 }

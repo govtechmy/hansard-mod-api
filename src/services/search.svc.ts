@@ -16,7 +16,7 @@ import type {
   SearchTopSpeakerRow,
   SqlBindings,
 } from '@/types'
-import { HOUSE_CODE } from '@/types/enum'
+import { ALL_HOUSE_CODES, HOUSE_CODE } from '@/types/enum'
 import { buildHeadlineFragment, paginate, resampleSeries, translateAgeGroupToBirthYearBounds } from '@/utils'
 
 function escapeLikePattern(value: string): string {
@@ -224,7 +224,7 @@ export class SearchService {
           date: r.sitting_date,
           term: Number(r.term ?? 0),
           session: Number(r.session ?? 0),
-          meeting: Number(r.meeting ?? 0),
+          meeting: r.meeting == null ? null : Number(r.meeting),
           house: r.house,
         },
       }))
@@ -245,7 +245,7 @@ export class SearchService {
   ): Promise<SearchCounterServiceResponse> {
     const whereParts: string[] = ['pc.house IN (:houses)', 'si.date >= :startDate', 'si.date <= :endDate']
     const repl: SqlBindings = {
-      houses: [HOUSE_CODE.DEWAN_RAKYAT, HOUSE_CODE.DEWAN_NEGARA, HOUSE_CODE.KAMAR_KHAS],
+      houses: ALL_HOUSE_CODES,
       startDate: parameters.startDate,
       endDate: parameters.endDate,
     }
@@ -310,12 +310,14 @@ export class SearchService {
       dewan_rakyat: 0,
       dewan_negara: 0,
       kamar_khas: 0,
+      majlis_mengangkat_sumpah: 0,
     }
     for (const row of countRows) {
       const house = Number(row.house)
       const count = Number(row.count ?? 0)
       if (house === HOUSE_CODE.DEWAN_RAKYAT) houseCounts.dewan_rakyat = count
       if (house === HOUSE_CODE.DEWAN_NEGARA) houseCounts.dewan_negara = count
+      if (house === HOUSE_CODE.MAJLIS_MENGANGKAT_SUMPAH) houseCounts.majlis_mengangkat_sumpah = count
       if (house === HOUSE_CODE.KAMAR_KHAS) houseCounts.kamar_khas = count
     }
 
@@ -425,7 +427,7 @@ export class SearchService {
       date: r.sitting_date,
       term: Number(r.term ?? 0),
       session: Number(r.session ?? 0),
-      meeting: Number(r.meeting ?? 0),
+      meeting: r.meeting == null ? null : Number(r.meeting),
       house: r.house,
     }))
 
