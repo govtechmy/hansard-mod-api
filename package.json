@@ -22,6 +22,22 @@
   "peerDependencies": {
     "typescript": "^5.9.2"
   },
+  "overrides": {
+    "@humanfs/node": "0.16.8",
+    "@isaacs/brace-expansion": "5.0.1",
+    "baseline-browser-mapping": "2.11.0",
+    "browserslist": "4.28.7",
+    "dottie": "2.0.7",
+    "fast-copy": "3.1.0",
+    "fast-uri": "3.1.9",
+    "fast-xml-parser": "5.12.0",
+    "find-my-way": "9.7.0",
+    "flatted": "3.4.2",
+    "js-yaml": "4.3.2",
+    "lodash": "4.18.1",
+    "moment": "2.31.0",
+    "yaml": "2.8.3"
+  },
   "scripts": {
     "dev": "bun --watch src/server.ts",
     "start": "bun src/server.ts",
@@ -42,14 +58,14 @@
     "@fastify/postgres": "^5.2.2",
     "@fastify/swagger": "^9.5.1",
     "@fastify/swagger-ui": "^5.2.3",
-    "ajv": "^8.13.0",
+    "ajv": "8.18.0",
     "bcrypt": "^6.0.0",
-    "fastify": "^5.5.0",
+    "fastify": "5.8.5",
     "fastify-type-provider-zod": "^5.0.3",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1",
-    "sequelize": "^6.37.7",
+    "sequelize": "6.37.8",
     "umzug": "^3.8.2",
-    "zod": "^4.0.17"
+    "zod": "^4.6.6"
   }
 }

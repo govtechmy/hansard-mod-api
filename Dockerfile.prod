@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y curl git && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # Copy package files for better layer caching
-COPY package.json ./
+COPY package.json bun.lock ./
 
 # Install all dependencies (including dev dependencies for build)
 RUN bun install --frozen-lockfile
