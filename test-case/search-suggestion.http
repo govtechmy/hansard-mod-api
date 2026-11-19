@@ -17,8 +17,29 @@ GET {{url}}/api/search/suggestion?q=krajaan%20mlysia
 ### Suggest a correction for transposed letters
 GET {{url}}/api/search/suggestion?q=harag%20minyak
 
+### Suggest a correction for abbreviations and shorthand
+# Expected: 200 with did_you_mean: "kenapa harga minyak naik tahun ini".
+GET {{url}}/api/search/suggestion?q=knp%20harga%20minyak%20naik%20thn%20ini
+
+### Expand additional Malay short forms
+# Expected: "yang belum sebelum".
+GET {{url}}/api/search/suggestion?q=yg%20blm%20sblm
+
+### Expand Malay parliamentary vocabulary
+# Expected: "kerajaan malaysia dengan rakyat".
+GET {{url}}/api/search/suggestion?q=krjn%20mlysia%20dgn%20rkyt
+
+### Expand English administrative vocabulary
+# Expected: "for your information international management meeting".
+GET {{url}}/api/search/suggestion?q=fyi%20intl%20mgmt%20mtg
+
+### Expand English short forms and phrases
+# Expected: "please message as soon as possible!".
+GET {{url}}/api/search/suggestion?q=PLS%20msg%20ASAP%21
+
 ### Suggest a correction for missing letters
-GET {{url}}/api/search/suggestion?q=kerjaan
+# Expected: 200 with did_you_mean: "akta kanak-kanak".
+GET {{url}}/api/search/suggestion?q=aktag%20knk%20knk
 
 ### Preserve known words
 # Expected when these words are indexed: 200, suggestions: [], did_you_mean: null.

@@ -1,6 +1,5 @@
 @url = http://localhost:3000
 # Bearer auth is currently disabled in src/server.ts; no .env token is needed.
-# Run bun run migrate:up before testing page fields.
 # Select an existing sitting_id from the catalogue response below.
 @sitting_id = 1
 @speech_index = {{$randomInt 1000000000 1499999999}}
@@ -12,7 +11,6 @@ GET {{url}}/api/catalogue?house=dewan-rakyat
 ### Bulk create a speech and an annotation
 # Use an existing sitting_id and unused indexes for that sitting.
 # Expected: 201 with an array of two created items matching the payload,
-# including numeric page ranges for the speech and null page ranges for the annotation.
 POST {{url}}/api/speech
 Content-Type: application/json
 
@@ -28,11 +26,7 @@ Content-Type: application/json
     "level_1": "UCAPAN",
     "level_2": null,
     "level_3": null,
-    "is_annotation": false,
-    "source_page_start": 1,
-    "source_page_end": 2,
-    "pdf_page_start": 10,
-    "pdf_page_end": 11
+    "is_annotation": false
   },
   {
     "sitting_id": {{sitting_id}},
@@ -45,11 +39,7 @@ Content-Type: application/json
     "level_1": null,
     "level_2": null,
     "level_3": null,
-    "is_annotation": true,
-    "source_page_start": null,
-    "source_page_end": null,
-    "pdf_page_start": null,
-    "pdf_page_end": null
+    "is_annotation": true
   }
 ]
 
