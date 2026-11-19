@@ -1,0 +1,33 @@
+# @url = https://hansard-api.govtechmy.xyz
+@url = http://localhost:3000
+# Bearer auth is currently disabled in src/server.ts; no .env token is needed.
+
+# First run: bun run migrate:up
+# After speech imports: bun run search:dictionary:refresh
+# Corrections depend on the words present in the dictionary.
+
+### Suggest a correction for "harga minyk naik"
+# Expected: 200; did_you_mean may be "harga minyak naik".
+GET {{url}}/api/search/suggestion?q=harga%20minyk%20naik
+
+### Prefer common spellings over equally similar corpus typos
+# Expected: 200 with did_you_mean: "kerajaan malaysia".
+GET {{url}}/api/search/suggestion?q=krajaan%20mlysia
+
+### Suggest a correction for transposed letters
+GET {{url}}/api/search/suggestion?q=harag%20minyak
+
+### Suggest a correction for missing letters
+GET {{url}}/api/search/suggestion?q=kerjaan
+
+### Preserve known words
+# Expected when these words are indexed: 200, suggestions: [], did_you_mean: null.
+GET {{url}}/api/search/suggestion?q=harga%20minyak%20naik
+
+### Expected validation error: missing query (400 is a passing result)
+# Expected: 400.
+GET {{url}}/api/search/suggestion
+
+### Expected validation error: empty query (400 is a passing result)
+# Expected: 400.
+GET {{url}}/api/search/suggestion?q=
