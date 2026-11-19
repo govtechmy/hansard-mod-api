@@ -92,3 +92,16 @@ POST {{url}}/api/file/download
 Content-Type: application/json
 
 {"key":"majlismengangkatsumpah/mms_2026-09-29.csv"}
+
+
+### Invalid MMS cycle: meeting must be null (expected 400; no row created)
+POST {{url}}/api/parliamentary-cycle
+Content-Type: application/json
+
+{"house":3,"term":15,"session":5,"meeting":1,"start_date":null,"end_date":null}
+
+### Invalid MMS cycle: dates must be null (expected 400; no row created)
+POST {{url}}/api/parliamentary-cycle
+Content-Type: application/json
+
+{"house":3,"term":15,"session":5,"meeting":null,"start_date":"2026-09-01","end_date":"2026-09-30"}

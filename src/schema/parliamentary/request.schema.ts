@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { HOUSE } from '@/types/enum'
+import { HOUSE, HOUSE_CODE } from '@/types/enum'
 
 export const createCycleBodySchema = z
   .object({
@@ -11,9 +11,13 @@ export const createCycleBodySchema = z
     session: z.number().int(),
     meeting: z.number().int().nullable(),
   })
-  .refine(cycle => cycle.house === 3 || (cycle.start_date != null && cycle.end_date != null && cycle.meeting != null), {
-    message: 'Meeting and dates are required for DR, DN and KK',
-  })
+  .refine(
+    cycle =>
+      cycle.house === HOUSE_CODE.MAJLIS_MENGANGKAT_SUMPAH
+        ? cycle.start_date === null && cycle.end_date === null && cycle.meeting === null
+        : cycle.start_date != null && cycle.end_date != null && cycle.meeting != null,
+    { message: 'Meeting and dates must be null for MMS and are required for DR, DN and KK' },
+  )
 
 export const catalogueQuerySchema = z.object({
   house: z.enum(HOUSE).optional(),
