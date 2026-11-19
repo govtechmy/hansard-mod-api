@@ -29,3 +29,7 @@ export const searchCounterQuerySchema = z.object({
 })
 
 export const searchPlotQuerySchema = searchQuerySchema
+
+export const searchSuggestionQuerySchema = z.object({
+  q: z.string().trim().min(1).max(200),
+})

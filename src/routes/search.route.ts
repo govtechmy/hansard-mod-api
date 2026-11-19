@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 
 import { getSearchCounter, getSearchMPDocResults, getSearchPlot, getSearchResults } from '@/controllers/search.controller'
+import { getSearchSuggestion } from '@/controllers/search-suggestion.controller'
 import {
   searchCounterQuerySchema,
   searchCounterResponseSchema,
@@ -9,9 +10,24 @@ import {
   searchPlotResponseSchema,
   searchQuerySchema,
   searchResultsResponseSchema,
+  searchSuggestionQuerySchema,
+  searchSuggestionResponseSchema,
 } from '@/schema'
 
 export async function registerSearchRoutes(app: FastifyInstance) {
+  app.get(
+    '/search/suggestion',
+    {
+      schema: {
+        tags: ['Search'],
+        summary: 'Suggest a corrected search query using Hansard vocabulary',
+        querystring: searchSuggestionQuerySchema,
+        response: { 200: searchSuggestionResponseSchema },
+      },
+    },
+    getSearchSuggestion,
+  )
+
   app.get(
     '/search',
     {
