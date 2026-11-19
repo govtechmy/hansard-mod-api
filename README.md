@@ -35,7 +35,7 @@ Recommended practices:
 
 ## 📋 Prerequisites
 
-- [Bun](https://bun.sh/) v1.3.1 or newer
+- [Bun](https://bun.sh/) v1.4.4 or newer
 - [Node.js](https://nodejs.org/) v18+ (optional, for tooling compatibility)
 - [PostgreSQL](https://www.postgresql.org/) 13+ running locally or remotely
 - AWS credentials (optional) when resolving environment configuration from Secrets Manager
