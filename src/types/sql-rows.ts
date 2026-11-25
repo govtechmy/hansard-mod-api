@@ -72,21 +72,21 @@ export interface SittingWithCycleRow {
   summary_status?: string
   cycle: {
     cycle_id: number
-    start_date: string
+    start_date: string | null
     end_date: string | null
     house: number
     term: number
     session: number
-    meeting: number
+    meeting: number | null
   }
 }
 
 export interface ParliamentaryCycleRow {
   cycle_id: number
-  start_date: string
+  start_date: string | null
   end_date: string | null
   house: number
   term: number
   session: number
-  meeting: number
+  meeting: number | null
 }

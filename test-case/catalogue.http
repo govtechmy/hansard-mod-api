@@ -41,3 +41,67 @@ GET {{url}}/api/sitting/list?house=dewan-rakyat&house=dewan-negara&house=kamar-k
 
 ### Sitting list for kamar khas
 GET {{url}}/api/sitting/list?house=kamar-khas
+
+### MMS catalogue: Penggal contains sitting_list directly; dates remain null
+GET {{url}}/api/catalogue?house=majlis-mengangkat-sumpah&term=15
+
+### MMS dropdown: no Mesyuarat folder
+GET {{url}}/api/catalogue?house=majlis-mengangkat-sumpah&term=15&dropdown=true
+
+### MMS sitting: cycle house=3, meeting/start_date/end_date=null
+GET {{url}}/api/sitting?house=majlis-mengangkat-sumpah&date=2026-09-29
+
+### DN on the same date must never return the MMS document (404 is valid)
+GET {{url}}/api/sitting?house=dewan-negara&date=2026-09-29
+
+### MMS sitting list accepts null cycle dates
+GET {{url}}/api/sitting/list?house=majlis-mengangkat-sumpah
+
+### All four houses, including MMS
+GET {{url}}/api/sitting/list?house=semua
+
+### Array semua also includes all four houses
+GET {{url}}/api/sitting/list?house=dewan-negara&house=semua
+
+### MMS search: house=3 and meeting=null
+GET {{url}}/api/search?house=majlis-mengangkat-sumpah&start_date=2010-01-01
+
+### Semua search includes MMS
+GET {{url}}/api/search?house=semua&start_date=2010-01-01
+
+### Array semua search includes MMS
+GET {{url}}/api/search?house=dewan-negara&house=semua&start_date=2010-01-01
+
+### MMS document search preserves meeting=null
+GET {{url}}/api/search-mp-doc?house=majlis-mengangkat-sumpah&start_date=2010-01-01
+
+### MMS plot
+GET {{url}}/api/search-plot?house=majlis-mengangkat-sumpah&start_date=2010-01-01
+
+### Counts include majlis_mengangkat_sumpah
+GET {{url}}/api/search/counter?start_date=2010-01-01
+
+### MMS PDF download
+POST {{url}}/api/file/download
+Content-Type: application/json
+
+{"key":"majlismengangkatsumpah/mms_2026-09-29.pdf"}
+
+### MMS CSV download
+POST {{url}}/api/file/download
+Content-Type: application/json
+
+{"key":"majlismengangkatsumpah/mms_2026-09-29.csv"}
+
+
+### Invalid MMS cycle: meeting must be null (expected 400; no row created)
+POST {{url}}/api/parliamentary-cycle
+Content-Type: application/json
+
+{"house":3,"term":15,"session":5,"meeting":1,"start_date":null,"end_date":null}
+
+### Invalid MMS cycle: dates must be null (expected 400; no row created)
+POST {{url}}/api/parliamentary-cycle
+Content-Type: application/json
+
+{"house":3,"term":15,"session":5,"meeting":null,"start_date":"2026-09-01","end_date":"2026-09-30"}
