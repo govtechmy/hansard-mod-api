@@ -23,6 +23,7 @@ export const searchResultItemSchema = z.object({
 })
 
 export const searchMPDocResultItemSchema = z.object({
+  index: z.number(),
   date: z.string(),
   term: z.number(),
   session: z.number(),

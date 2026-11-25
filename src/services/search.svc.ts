@@ -376,7 +376,7 @@ export class SearchService {
       repl.uid = parameters.uid
     }
 
-    const orderBy = 'si.date DESC'
+    const orderBy = 'si.date DESC, pc.house ASC, pc.term ASC, pc.session ASC, pc.meeting ASC'
 
     const baseFrom = `
       FROM api_speech s
@@ -410,9 +410,10 @@ export class SearchService {
 
     const { offset, next, previous } = paginate(total, parameters.pageInput, parameters.pageSize)
     const selectSql = `
-      SELECT DISTINCT si.date as sitting_date, pc.term, pc.session, pc.meeting, pc.house
+      SELECT MIN(s.index) AS index, si.date as sitting_date, pc.term, pc.session, pc.meeting, pc.house
       ${baseFrom}
       ${whereSql}
+      GROUP BY si.date, pc.term, pc.session, pc.meeting, pc.house
       ORDER BY ${orderBy}
       LIMIT :limit OFFSET :offset
     `
@@ -424,6 +425,7 @@ export class SearchService {
     })
 
     const results: SearchMPDocResultsResponse['results'] = rows.map(r => ({
+      index: Number(r.index),
       date: r.sitting_date,
       term: Number(r.term ?? 0),
       session: Number(r.session ?? 0),
